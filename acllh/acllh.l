@@ -16,9 +16,9 @@ exp                     [Ee][-+]?[0-9]+
 
 number                  [-+]?(0(x|X){hex}+)|(0{oct}+)|{dig}*("."{dig}+)?{exp}?
 charac                  \'(.|\\.)\'
-string                  \"(\\?.)*?\"
 boolval                 true|false
-constant	            {number}|{charac}|{string}|{boolval}
+
+constant	            {number}|{charac}|{boolval}
 
 identifier              {letter}({letter}|{dig})*
 
@@ -35,6 +35,7 @@ varargs                 "..."
 extra                   {escape}|{varargs}
 
 %x BLOCKCOMMENT
+%x BLOCKSTRING
 
 %{
 #include <stdio.h>
@@ -116,16 +117,36 @@ FILE *statistic_output;
 
 "/*" {
 	BEGIN BLOCKCOMMENT;
+    printf(DYES("%s", COMMENT_COLOR), yytext);
 }
 
 <BLOCKCOMMENT>"*/" {
+    printf(DYES("%s", COMMENT_COLOR), yytext);
     comment_num++;
 	BEGIN 0;
 }
 
-<BLOCKCOMMENT>. { }
+<BLOCKCOMMENT>. { printf(DYES("%s", COMMENT_COLOR), yytext); }
 
-<BLOCKCOMMENT>"\n" { }
+<BLOCKCOMMENT>"\n" {
+    printf("\n");
+    printf(DYES("%4d: ", LINE_NO_COLOR), yylineno);
+}
+
+"\"" {
+    BEGIN BLOCKSTRING;
+    printf(DYES("%s", CONSTANT_COLOR), yytext);
+}
+
+<BLOCKSTRING>"\"" {
+    printf(DYES("%s", CONSTANT_COLOR), yytext);
+    constant_num++;
+    BEGIN 0;
+}
+
+<BLOCKSTRING>"\\". { printf(DYES("%s", CONSTANT_COLOR), yytext); }
+
+<BLOCKSTRING>. { printf(DYES("%s", CONSTANT_COLOR), yytext); }
 
 {macro}	{
 	printf(DYES("%s", MACRO_COLOR), yytext);

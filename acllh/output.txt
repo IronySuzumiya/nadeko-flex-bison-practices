@@ -3026,3 +3026,1884 @@
 [ 480]delimiter:          }
 
 
+------     testcase/Interpreter.c     ------
+
+[   1]macro:              #include "Interpreter.h"
+[   2]macro:              #include "string.h"
+[   3]macro:              #include "stdlib.h"
+[   4]macro:              #include "uart.h"
+[   6]reserved word(23):  static
+[   6]reserved word( 3):  char
+[   6]identifier:         messageBuf
+[   6]delimiter:          [
+[   6]identifier:         COMMAND_BUF_SIZE
+[   6]delimiter:          ]
+[   6]delimiter:          ;
+[   7]reserved word(23):  static
+[   7]reserved word( 3):  char
+[   7]operator(42):       *
+[   7]identifier:         messageBytePtr
+[   7]operator(61):       =
+[   7]identifier:         messageBuf
+[   7]delimiter:          ;
+[   8]reserved word(23):  static
+[   8]reserved word(33):  bool
+[   8]identifier:         isMasterModifyingSlave
+[   8]delimiter:          ;
+[   9]reserved word(23):  static
+[   9]reserved word(33):  bool
+[   9]identifier:         isSlaveSynchronizingMaster
+[   9]delimiter:          ;
+[  10]reserved word(23):  static
+[  10]reserved word(33):  bool
+[  10]identifier:         inSwitchSector
+[  10]delimiter:          ;
+[  11]reserved word(23):  static
+[  11]reserved word(33):  bool
+[  11]identifier:         inParamSector
+[  11]delimiter:          ;
+[  13]reserved word(23):  static
+[  13]reserved word(33):  bool
+[  13]identifier:         IsUpper
+[  13]operator(40):       (
+[  13]reserved word( 3):  char
+[  13]identifier:         charac
+[  13]operator(41):       )
+[  13]delimiter:          ;
+[  14]reserved word(23):  static
+[  14]reserved word(33):  bool
+[  14]identifier:         IsLower
+[  14]operator(40):       (
+[  14]reserved word( 3):  char
+[  14]identifier:         charac
+[  14]operator(41):       )
+[  14]delimiter:          ;
+[  15]reserved word(23):  static
+[  15]reserved word(29):  void
+[  15]identifier:         DebugSend
+[  15]operator(40):       (
+[  15]reserved word( 4):  const
+[  15]reserved word( 3):  char
+[  15]operator(42):       *
+[  15]identifier:         message
+[  15]operator(41):       )
+[  15]delimiter:          ;
+[  16]reserved word(23):  static
+[  16]reserved word(29):  void
+[  16]identifier:         ReturnParam
+[  16]operator(40):       (
+[  16]reserved word(29):  void
+[  16]operator(41):       )
+[  16]delimiter:          ;
+[  17]reserved word(23):  static
+[  17]reserved word(29):  void
+[  17]identifier:         ResponseOK
+[  17]operator(40):       (
+[  17]reserved word(29):  void
+[  17]operator(41):       )
+[  17]delimiter:          ;
+[  18]reserved word(23):  static
+[  18]reserved word(29):  void
+[  18]identifier:         ResponseError
+[  18]operator(40):       (
+[  18]reserved word(29):  void
+[  18]operator(41):       )
+[  18]delimiter:          ;
+[  19]reserved word(23):  static
+[  19]reserved word(33):  bool
+[  19]identifier:         CommandParse
+[  19]operator(40):       (
+[  19]reserved word( 4):  const
+[  19]reserved word( 3):  char
+[  19]operator(42):       *
+[  19]identifier:         message
+[  19]operator(41):       )
+[  19]delimiter:          ;
+[  20]reserved word(23):  static
+[  20]reserved word(33):  bool
+[  20]identifier:         SectorDeclarationParse
+[  20]operator(40):       (
+[  20]reserved word( 4):  const
+[  20]reserved word( 3):  char
+[  20]operator(42):       *
+[  20]identifier:         message
+[  20]operator(41):       )
+[  20]delimiter:          ;
+[  21]reserved word(23):  static
+[  21]reserved word(29):  void
+[  21]identifier:         SwitchModificationParse
+[  21]operator(40):       (
+[  21]reserved word( 4):  const
+[  21]reserved word( 3):  char
+[  21]operator(42):       *
+[  21]identifier:         message
+[  21]operator(41):       )
+[  21]delimiter:          ;
+[  22]reserved word(23):  static
+[  22]reserved word(29):  void
+[  22]identifier:         UpdateParamValueAsInt16
+[  22]operator(40):       (
+[  22]identifier:         int16_t
+[  22]operator(42):       *
+[  22]identifier:         param
+[  22]delimiter:          ,
+[  22]reserved word( 4):  const
+[  22]reserved word( 3):  char
+[  22]operator(42):       *
+[  22]identifier:         message
+[  22]operator(41):       )
+[  22]delimiter:          ;
+[  23]reserved word(23):  static
+[  23]reserved word(29):  void
+[  23]identifier:         UpdateParamValueAsDouble
+[  23]operator(40):       (
+[  23]reserved word( 8):  double
+[  23]operator(42):       *
+[  23]identifier:         param
+[  23]delimiter:          ,
+[  23]reserved word( 4):  const
+[  23]reserved word( 3):  char
+[  23]operator(42):       *
+[  23]identifier:         message
+[  23]operator(41):       )
+[  23]delimiter:          ;
+[  24]reserved word(23):  static
+[  24]reserved word(29):  void
+[  24]identifier:         ParamModificationParse
+[  24]operator(40):       (
+[  24]reserved word( 4):  const
+[  24]reserved word( 3):  char
+[  24]operator(42):       *
+[  24]identifier:         message
+[  24]operator(41):       )
+[  24]delimiter:          ;
+[  26]reserved word(29):  void
+[  26]identifier:         MessageParse
+[  26]operator(40):       (
+[  26]identifier:         uint16_t
+[  26]identifier:         byte
+[  26]operator(41):       )
+[  26]delimiter:          {
+[  27]reserved word(33):  bool
+[  27]identifier:         lineReceived
+[  27]operator(61):       =
+[  27]constant:           false
+[  27]delimiter:          ;
+[  29]reserved word(15):  if
+[  29]operator(40):       (
+[  29]identifier:         messageBytePtr
+[  29]operator(45):       -
+[  29]identifier:         messageBuf
+[  29]operator(60):       <
+[  29]identifier:         COMMAND_BUF_SIZE
+[  29]operator(45):       -
+[  29]constant:           1
+[  29]operator(41):       )
+[  29]delimiter:          {
+[  30]operator(42):       *
+[  30]identifier:         messageBytePtr
+[  30]operator(61):       =
+[  30]identifier:         byte
+[  30]delimiter:          ;
+[  31]reserved word(15):  if
+[  31]operator(40):       (
+[  31]operator(42):       *
+[  31]identifier:         messageBytePtr
+[  31]operator(122):       ==
+[  31]constant:           '\n'
+[  31]operator(41):       )
+[  31]delimiter:          {
+[  32]identifier:         lineReceived
+[  32]operator(61):       =
+[  32]constant:           true
+[  32]delimiter:          ;
+[  33]identifier:         messageBytePtr
+[  33]operator(90):       --
+[  33]delimiter:          ;
+[  34]operator(42):       *
+[  34]identifier:         messageBytePtr
+[  34]operator(61):       =
+[  34]constant:           0
+[  34]delimiter:          ;
+[  35]delimiter:          }
+[  35]reserved word( 9):  else
+[  35]delimiter:          {
+[  36]identifier:         messageBytePtr
+[  36]operator(86):       ++
+[  36]delimiter:          ;
+[  37]operator(42):       *
+[  37]identifier:         messageBytePtr
+[  37]operator(61):       =
+[  37]constant:           0
+[  37]delimiter:          ;
+[  38]delimiter:          }
+[  39]delimiter:          }
+[  39]reserved word( 9):  else
+[  39]delimiter:          {
+[  40]identifier:         messageBytePtr
+[  40]operator(61):       =
+[  40]identifier:         messageBuf
+[  40]delimiter:          ;
+[  41]operator(42):       *
+[  41]identifier:         messageBytePtr
+[  41]operator(61):       =
+[  41]constant:           0
+[  41]delimiter:          ;
+[  42]delimiter:          }
+[  44]reserved word(15):  if
+[  44]operator(40):       (
+[  44]identifier:         lineReceived
+[  44]operator(41):       )
+[  44]delimiter:          {
+[  45]reserved word(15):  if
+[  45]operator(40):       (
+[  45]identifier:         CommandParse
+[  45]operator(40):       (
+[  45]identifier:         messageBuf
+[  45]operator(41):       )
+[  45]operator(41):       )
+[  45]delimiter:          {
+[  46]comment:            // do nothing
+[  47]delimiter:          }
+[  47]reserved word( 9):  else
+[  47]reserved word(15):  if
+[  47]operator(40):       (
+[  47]identifier:         isMasterModifyingSlave
+[  47]operator(41):       )
+[  47]delimiter:          {
+[  48]reserved word(15):  if
+[  48]operator(40):       (
+[  48]identifier:         SectorDeclarationParse
+[  48]operator(40):       (
+[  48]identifier:         messageBuf
+[  48]operator(41):       )
+[  48]operator(41):       )
+[  48]delimiter:          {
+[  49]comment:            // do nothing
+[  50]delimiter:          }
+[  50]reserved word( 9):  else
+[  50]reserved word(15):  if
+[  50]operator(40):       (
+[  50]identifier:         inSwitchSector
+[  50]operator(41):       )
+[  50]delimiter:          {
+[  51]identifier:         SwitchModificationParse
+[  51]operator(40):       (
+[  51]identifier:         messageBuf
+[  51]operator(41):       )
+[  51]delimiter:          ;
+[  52]delimiter:          }
+[  52]reserved word( 9):  else
+[  52]reserved word(15):  if
+[  52]operator(40):       (
+[  52]identifier:         inParamSector
+[  52]operator(41):       )
+[  52]delimiter:          {
+[  53]identifier:         ParamModificationParse
+[  53]operator(40):       (
+[  53]identifier:         messageBuf
+[  53]operator(41):       )
+[  53]delimiter:          ;
+[  54]delimiter:          }
+[  55]delimiter:          }
+[  56]delimiter:          }
+[  57]delimiter:          }
+[  59]reserved word(33):  bool
+[  59]identifier:         IsUpper
+[  59]operator(40):       (
+[  59]reserved word( 3):  char
+[  59]identifier:         charac
+[  59]operator(41):       )
+[  59]delimiter:          {
+[  60]reserved word(19):  return
+[  60]identifier:         charac
+[  60]operator(123):       >=
+[  60]constant:           'A'
+[  60]operator(76):       &&
+[  60]identifier:         charac
+[  60]operator(121):       <=
+[  60]constant:           'Z'
+[  60]delimiter:          ;
+[  61]delimiter:          }
+[  63]reserved word(33):  bool
+[  63]identifier:         IsLower
+[  63]operator(40):       (
+[  63]reserved word( 3):  char
+[  63]identifier:         charac
+[  63]operator(41):       )
+[  63]delimiter:          {
+[  64]reserved word(19):  return
+[  64]identifier:         charac
+[  64]operator(123):       >=
+[  64]constant:           'a'
+[  64]operator(76):       &&
+[  64]identifier:         charac
+[  64]operator(121):       <=
+[  64]constant:           'z'
+[  64]delimiter:          ;
+[  65]delimiter:          }
+[  67]reserved word(29):  void
+[  67]identifier:         DebugSend
+[  67]operator(40):       (
+[  67]reserved word( 4):  const
+[  67]reserved word( 3):  char
+[  67]operator(42):       *
+[  67]identifier:         message
+[  67]operator(41):       )
+[  67]delimiter:          {
+[  68]identifier:         UART_printf
+[  68]operator(40):       (
+[  68]identifier:         DATACOMM_DEBUG_CHL
+[  68]delimiter:          ,
+[  68]identifier:         message
+[  68]operator(41):       )
+[  68]delimiter:          ;
+[  69]delimiter:          }
+[  71]reserved word(29):  void
+[  71]identifier:         ReturnParam
+[  71]operator(40):       (
+[  71]operator(41):       )
+[  71]delimiter:          {
+[  72]reserved word( 3):  char
+[  72]identifier:         responseBuf
+[  72]delimiter:          [
+[  72]identifier:         RESPONSE_BUF_SIZE
+[  72]delimiter:          ]
+[  72]delimiter:          ;
+[  73]identifier:         sprintf
+[  73]operator(40):       (
+[  73]identifier:         responseBuf
+[  73]delimiter:          ,
+[  86]delimiter:          ,
+[  87]identifier:         START_OF_RESPONSE
+[  87]delimiter:          ,
+[  88]identifier:         MOTOR_HEADER
+[  88]delimiter:          ,
+[  88]identifier:         motor_on
+[  88]delimiter:          ,
+[  88]identifier:         ENCODER_HEADER
+[  88]delimiter:          ,
+[  88]identifier:         encoder_on
+[  88]delimiter:          ,
+[  88]identifier:         SPEED_CONTROL_HEADER
+[  88]delimiter:          ,
+[  88]identifier:         speed_control_on
+[  88]delimiter:          ,
+[  89]identifier:         DIRECTION_CONTROL_HEADER
+[  89]delimiter:          ,
+[  89]identifier:         direction_control_on
+[  89]delimiter:          ,
+[  89]identifier:         IMG_TRANS_HEADER
+[  89]delimiter:          ,
+[  89]identifier:         img_trans_on
+[  89]delimiter:          ,
+[  89]identifier:         STATE_TRANS_HEADER
+[  89]delimiter:          ,
+[  89]identifier:         state_trans_on
+[  89]delimiter:          ,
+[  90]identifier:         MODE_SWITCH_HEADER
+[  90]delimiter:          ,
+[  90]identifier:         mode_switch_on
+[  90]delimiter:          ,
+[  90]identifier:         USE_INC_PID_HEADER
+[  90]delimiter:          ,
+[  90]identifier:         use_inc_pid
+[  90]delimiter:          ,
+[  90]identifier:         USE_FTM_QD_HEADER
+[  90]delimiter:          ,
+[  90]identifier:         use_ftm_qd
+[  90]delimiter:          ,
+[  91]identifier:         SPEED_CONTROL_LEFT_P_HEADER
+[  91]delimiter:          ,
+[  91]identifier:         leftPid
+[  91]operator(46):       .
+[  91]identifier:         kp
+[  91]delimiter:          ,
+[  91]identifier:         SPEED_CONTROL_LEFT_I_HEADER
+[  91]delimiter:          ,
+[  91]identifier:         leftPid
+[  91]operator(46):       .
+[  91]identifier:         ki
+[  91]delimiter:          ,
+[  91]identifier:         SPEED_CONTROL_LEFT_D_HEADER
+[  91]delimiter:          ,
+[  91]identifier:         leftPid
+[  91]operator(46):       .
+[  91]identifier:         kd
+[  91]delimiter:          ,
+[  92]identifier:         SPEED_CONTROL_RIGHT_P_HEADER
+[  92]delimiter:          ,
+[  92]identifier:         rightPid
+[  92]operator(46):       .
+[  92]identifier:         kp
+[  92]delimiter:          ,
+[  92]identifier:         SPEED_CONTROL_RIGHT_I_HEADER
+[  92]delimiter:          ,
+[  92]identifier:         rightPid
+[  92]operator(46):       .
+[  92]identifier:         ki
+[  92]delimiter:          ,
+[  92]identifier:         SPEED_CONTROL_RIGHT_D_HEADER
+[  92]delimiter:          ,
+[  92]identifier:         rightPid
+[  92]operator(46):       .
+[  92]identifier:         kd
+[  92]delimiter:          ,
+[  93]identifier:         STEER_ACTUATOR_LEFT_VALUE_HEADER
+[  93]delimiter:          ,
+[  93]identifier:         steer_actuator_left
+[  93]delimiter:          ,
+[  93]identifier:         STEER_ACTUATOR_MIDDLE_VALUE_HEADER
+[  93]delimiter:          ,
+[  93]identifier:         steer_actuator_middle
+[  93]delimiter:          ,
+[  94]identifier:         STEER_ACTUATOR_RIGHT_VALUE_HEADER
+[  94]delimiter:          ,
+[  94]identifier:         steer_actuator_right
+[  94]delimiter:          ,
+[  95]identifier:         SPEED_CONTROL_LEFT_SPEED_HEADER
+[  95]delimiter:          ,
+[  95]identifier:         leftPid
+[  95]operator(46):       .
+[  95]identifier:         targetValue
+[  95]delimiter:          ,
+[  95]identifier:         SPEED_CONTROL_RIGHT_SPEED_HEADER
+[  95]delimiter:          ,
+[  95]identifier:         rightPid
+[  95]operator(46):       .
+[  95]identifier:         targetValue
+[  95]delimiter:          ,
+[  96]identifier:         SPEED_CONTROL_SUM_ERR_MAX_HEADER
+[  96]delimiter:          ,
+[  96]identifier:         speed_control_sum_err_max
+[  96]delimiter:          ,
+[  97]identifier:         SPEED_CONTROL_SPEED_HEADER
+[  97]delimiter:          ,
+[  97]identifier:         speed_control_speed
+[  97]delimiter:          ,
+[  97]identifier:         IMG_BORDER_SCAN_COMPENSATION_HEADER
+[  97]delimiter:          ,
+[  97]identifier:         img_border_scan_compensation
+[  97]delimiter:          ,
+[  98]identifier:         WIDE_ROAD_SIZE_HEADER
+[  98]delimiter:          ,
+[  98]identifier:         wide_road_size
+[  98]delimiter:          ,
+[  99]identifier:         CURVES_SENSITIVITY_HEADER
+[  99]delimiter:          ,
+[  99]identifier:         curve_sensitivity
+[  99]delimiter:          ,
+[  99]identifier:         SLOPE_SENSITIVITY_HEADER
+[  99]delimiter:          ,
+[  99]identifier:         slope_sensitivity
+[  99]delimiter:          ,
+[ 100]identifier:         INFLEXION_SENSITIVITY_HEADER
+[ 100]delimiter:          ,
+[ 100]identifier:         inflexion_sensitivity
+[ 100]delimiter:          ,
+[ 101]identifier:         CROSS_ROAD_SIZE_HEADER
+[ 101]delimiter:          ,
+[ 101]identifier:         cross_road_size
+[ 101]delimiter:          ,
+[ 101]identifier:         STRAIGHT_ROAD_SENSITIVITY_HEADER
+[ 101]delimiter:          ,
+[ 101]identifier:         straight_road_sensitivity
+[ 101]delimiter:          ,
+[ 102]identifier:         DIRECTION_CONTROL_KD_HEADER
+[ 102]delimiter:          ,
+[ 102]identifier:         direction_control_kd
+[ 102]delimiter:          ,
+[ 103]identifier:         DIRECTION_CONTROL_KPJ_HEADER
+[ 103]delimiter:          ,
+[ 103]identifier:         direction_control_kpj
+[ 103]delimiter:          ,
+[ 103]identifier:         DIRECTION_CONTROL_KPC_HEADER
+[ 103]delimiter:          ,
+[ 103]identifier:         direction_control_kpc
+[ 103]delimiter:          ,
+[ 104]identifier:         DIRECTION_CONTROL_ANGLE_MAX_HEADER
+[ 104]delimiter:          ,
+[ 104]identifier:         direction_control_angle_max
+[ 104]delimiter:          ,
+[ 105]identifier:         END_OF_RESPONSE
+[ 106]operator(41):       )
+[ 106]delimiter:          ;
+[ 107]identifier:         DebugSend
+[ 107]operator(40):       (
+[ 107]identifier:         responseBuf
+[ 107]operator(41):       )
+[ 107]delimiter:          ;
+[ 108]delimiter:          }
+[ 110]reserved word(29):  void
+[ 110]identifier:         ResponseOK
+[ 110]operator(40):       (
+[ 110]operator(41):       )
+[ 110]delimiter:          {
+[ 111]identifier:         DebugSend
+[ 111]operator(40):       (
+[ 111]identifier:         OK_RESPONSE
+[ 111]operator(41):       )
+[ 111]delimiter:          ;
+[ 112]delimiter:          }
+[ 114]reserved word(29):  void
+[ 114]identifier:         ResponseError
+[ 114]operator(40):       (
+[ 114]operator(41):       )
+[ 114]delimiter:          {
+[ 115]identifier:         DebugSend
+[ 115]operator(40):       (
+[ 115]identifier:         ERROR_RESPONSE
+[ 115]operator(41):       )
+[ 115]delimiter:          ;
+[ 116]delimiter:          }
+[ 118]reserved word(33):  bool
+[ 118]identifier:         CommandParse
+[ 118]operator(40):       (
+[ 118]reserved word( 4):  const
+[ 118]reserved word( 3):  char
+[ 118]operator(42):       *
+[ 118]identifier:         message
+[ 118]operator(41):       )
+[ 118]delimiter:          {
+[ 119]reserved word(15):  if
+[ 119]operator(40):       (
+[ 119]operator(33):       !
+[ 119]identifier:         strcmp
+[ 119]operator(40):       (
+[ 119]identifier:         message
+[ 119]delimiter:          ,
+[ 119]identifier:         MODIFY_COMMAND
+[ 119]operator(41):       )
+[ 119]operator(41):       )
+[ 119]delimiter:          {
+[ 120]identifier:         isMasterModifyingSlave
+[ 120]operator(61):       =
+[ 120]constant:           true
+[ 120]delimiter:          ;
+[ 121]delimiter:          }
+[ 121]reserved word( 9):  else
+[ 121]reserved word(15):  if
+[ 121]operator(40):       (
+[ 121]operator(33):       !
+[ 121]identifier:         strcmp
+[ 121]operator(40):       (
+[ 121]identifier:         message
+[ 121]delimiter:          ,
+[ 121]identifier:         END_OF_COMMAND
+[ 121]operator(41):       )
+[ 121]operator(41):       )
+[ 121]delimiter:          {
+[ 122]reserved word(15):  if
+[ 122]operator(40):       (
+[ 122]identifier:         isSlaveSynchronizingMaster
+[ 122]operator(41):       )
+[ 122]delimiter:          {
+[ 123]identifier:         ReturnParam
+[ 123]operator(40):       (
+[ 123]operator(41):       )
+[ 123]delimiter:          ;
+[ 124]delimiter:          }
+[ 124]reserved word( 9):  else
+[ 124]reserved word(15):  if
+[ 124]operator(40):       (
+[ 124]identifier:         isMasterModifyingSlave
+[ 124]operator(41):       )
+[ 124]delimiter:          {
+[ 125]identifier:         ResponseOK
+[ 125]operator(40):       (
+[ 125]operator(41):       )
+[ 125]delimiter:          ;
+[ 126]delimiter:          }
+[ 126]reserved word( 9):  else
+[ 126]delimiter:          {
+[ 127]identifier:         ResponseError
+[ 127]operator(40):       (
+[ 127]operator(41):       )
+[ 127]delimiter:          ;
+[ 128]delimiter:          }
+[ 129]identifier:         isMasterModifyingSlave
+[ 129]operator(61):       =
+[ 129]constant:           false
+[ 129]delimiter:          ;
+[ 130]identifier:         isSlaveSynchronizingMaster
+[ 130]operator(61):       =
+[ 130]constant:           false
+[ 130]delimiter:          ;
+[ 131]identifier:         inSwitchSector
+[ 131]operator(61):       =
+[ 131]constant:           false
+[ 131]delimiter:          ;
+[ 132]identifier:         inParamSector
+[ 132]operator(61):       =
+[ 132]constant:           false
+[ 132]delimiter:          ;
+[ 133]delimiter:          }
+[ 133]reserved word( 9):  else
+[ 133]delimiter:          {
+[ 134]reserved word(19):  return
+[ 134]constant:           false
+[ 134]delimiter:          ;
+[ 135]delimiter:          }
+[ 136]comment:            // drop down here from if or else if
+[ 137]reserved word(19):  return
+[ 137]constant:           true
+[ 137]delimiter:          ;
+[ 138]delimiter:          }
+[ 140]reserved word(33):  bool
+[ 140]identifier:         SectorDeclarationParse
+[ 140]operator(40):       (
+[ 140]reserved word( 4):  const
+[ 140]reserved word( 3):  char
+[ 140]operator(42):       *
+[ 140]identifier:         message
+[ 140]operator(41):       )
+[ 140]delimiter:          {
+[ 141]reserved word(15):  if
+[ 141]operator(40):       (
+[ 141]operator(33):       !
+[ 141]identifier:         strcmp
+[ 141]operator(40):       (
+[ 141]identifier:         message
+[ 141]delimiter:          ,
+[ 141]identifier:         DECLARE_SWITCH_SECTOR
+[ 141]operator(41):       )
+[ 141]operator(41):       )
+[ 141]delimiter:          {
+[ 142]identifier:         inParamSector
+[ 142]operator(61):       =
+[ 142]constant:           false
+[ 142]delimiter:          ;
+[ 143]identifier:         inSwitchSector
+[ 143]operator(61):       =
+[ 143]constant:           true
+[ 143]delimiter:          ;
+[ 144]delimiter:          }
+[ 144]reserved word( 9):  else
+[ 144]reserved word(15):  if
+[ 144]operator(40):       (
+[ 144]operator(33):       !
+[ 144]identifier:         strcmp
+[ 144]operator(40):       (
+[ 144]identifier:         message
+[ 144]delimiter:          ,
+[ 144]identifier:         DECLARE_PARAM_SECTOR
+[ 144]operator(41):       )
+[ 144]operator(41):       )
+[ 144]delimiter:          {
+[ 145]identifier:         inSwitchSector
+[ 145]operator(61):       =
+[ 145]constant:           false
+[ 145]delimiter:          ;
+[ 146]identifier:         inParamSector
+[ 146]operator(61):       =
+[ 146]constant:           true
+[ 146]delimiter:          ;
+[ 147]delimiter:          }
+[ 147]reserved word( 9):  else
+[ 147]delimiter:          {
+[ 148]reserved word(19):  return
+[ 148]constant:           false
+[ 148]delimiter:          ;
+[ 149]delimiter:          }
+[ 150]comment:            // drop down here from if or else if
+[ 151]reserved word(19):  return
+[ 151]constant:           true
+[ 151]delimiter:          ;
+[ 152]delimiter:          }
+[ 154]reserved word(29):  void
+[ 154]identifier:         SwitchModificationParse
+[ 154]operator(40):       (
+[ 154]reserved word( 4):  const
+[ 154]reserved word( 3):  char
+[ 154]operator(42):       *
+[ 154]identifier:         message
+[ 154]operator(41):       )
+[ 154]delimiter:          {
+[ 155]reserved word(15):  if
+[ 155]operator(40):       (
+[ 155]operator(33):       !
+[ 155]identifier:         strcasecmp
+[ 155]operator(40):       (
+[ 155]identifier:         message
+[ 155]delimiter:          ,
+[ 155]identifier:         MOTOR_HEADER
+[ 155]operator(41):       )
+[ 155]operator(41):       )
+[ 155]delimiter:          {
+[ 156]reserved word(15):  if
+[ 156]operator(40):       (
+[ 156]identifier:         IsUpper
+[ 156]operator(40):       (
+[ 156]operator(42):       *
+[ 156]identifier:         message
+[ 156]operator(41):       )
+[ 156]operator(41):       )
+[ 156]delimiter:          {
+[ 157]identifier:         motor_on
+[ 157]operator(61):       =
+[ 157]constant:           true
+[ 157]delimiter:          ;
+[ 158]delimiter:          }
+[ 158]reserved word( 9):  else
+[ 158]reserved word(15):  if
+[ 158]operator(40):       (
+[ 158]identifier:         IsLower
+[ 158]operator(40):       (
+[ 158]operator(42):       *
+[ 158]identifier:         message
+[ 158]operator(41):       )
+[ 158]operator(41):       )
+[ 158]delimiter:          {
+[ 159]identifier:         motor_on
+[ 159]operator(61):       =
+[ 159]constant:           false
+[ 159]delimiter:          ;
+[ 160]delimiter:          }
+[ 160]reserved word( 9):  else
+[ 160]delimiter:          {
+[ 161]identifier:         ResponseError
+[ 161]operator(40):       (
+[ 161]operator(41):       )
+[ 161]delimiter:          ;
+[ 162]delimiter:          }
+[ 163]delimiter:          }
+[ 163]reserved word( 9):  else
+[ 163]reserved word(15):  if
+[ 163]operator(40):       (
+[ 163]operator(33):       !
+[ 163]identifier:         strcasecmp
+[ 163]operator(40):       (
+[ 163]identifier:         message
+[ 163]delimiter:          ,
+[ 163]identifier:         ENCODER_HEADER
+[ 163]operator(41):       )
+[ 163]operator(41):       )
+[ 163]delimiter:          {
+[ 164]reserved word(15):  if
+[ 164]operator(40):       (
+[ 164]identifier:         IsUpper
+[ 164]operator(40):       (
+[ 164]operator(42):       *
+[ 164]identifier:         message
+[ 164]operator(41):       )
+[ 164]operator(41):       )
+[ 164]delimiter:          {
+[ 165]identifier:         encoder_on
+[ 165]operator(61):       =
+[ 165]constant:           true
+[ 165]delimiter:          ;
+[ 166]delimiter:          }
+[ 166]reserved word( 9):  else
+[ 166]reserved word(15):  if
+[ 166]operator(40):       (
+[ 166]identifier:         IsLower
+[ 166]operator(40):       (
+[ 166]operator(42):       *
+[ 166]identifier:         message
+[ 166]operator(41):       )
+[ 166]operator(41):       )
+[ 166]delimiter:          {
+[ 167]identifier:         encoder_on
+[ 167]operator(61):       =
+[ 167]constant:           false
+[ 167]delimiter:          ;
+[ 168]delimiter:          }
+[ 168]reserved word( 9):  else
+[ 168]delimiter:          {
+[ 169]identifier:         ResponseError
+[ 169]operator(40):       (
+[ 169]operator(41):       )
+[ 169]delimiter:          ;
+[ 170]delimiter:          }
+[ 171]delimiter:          }
+[ 171]reserved word( 9):  else
+[ 171]reserved word(15):  if
+[ 171]operator(40):       (
+[ 171]operator(33):       !
+[ 171]identifier:         strcasecmp
+[ 171]operator(40):       (
+[ 171]identifier:         message
+[ 171]delimiter:          ,
+[ 171]identifier:         SPEED_CONTROL_HEADER
+[ 171]operator(41):       )
+[ 171]operator(41):       )
+[ 171]delimiter:          {
+[ 172]reserved word(15):  if
+[ 172]operator(40):       (
+[ 172]identifier:         IsUpper
+[ 172]operator(40):       (
+[ 172]operator(42):       *
+[ 172]identifier:         message
+[ 172]operator(41):       )
+[ 172]operator(41):       )
+[ 172]delimiter:          {
+[ 173]identifier:         speed_control_on
+[ 173]operator(61):       =
+[ 173]constant:           true
+[ 173]delimiter:          ;
+[ 174]delimiter:          }
+[ 174]reserved word( 9):  else
+[ 174]reserved word(15):  if
+[ 174]operator(40):       (
+[ 174]identifier:         IsLower
+[ 174]operator(40):       (
+[ 174]operator(42):       *
+[ 174]identifier:         message
+[ 174]operator(41):       )
+[ 174]operator(41):       )
+[ 174]delimiter:          {
+[ 175]identifier:         speed_control_on
+[ 175]operator(61):       =
+[ 175]constant:           false
+[ 175]delimiter:          ;
+[ 176]delimiter:          }
+[ 176]reserved word( 9):  else
+[ 176]delimiter:          {
+[ 177]identifier:         ResponseError
+[ 177]operator(40):       (
+[ 177]operator(41):       )
+[ 177]delimiter:          ;
+[ 178]delimiter:          }
+[ 179]delimiter:          }
+[ 179]reserved word( 9):  else
+[ 179]reserved word(15):  if
+[ 179]operator(40):       (
+[ 179]operator(33):       !
+[ 179]identifier:         strcasecmp
+[ 179]operator(40):       (
+[ 179]identifier:         message
+[ 179]delimiter:          ,
+[ 179]identifier:         DIRECTION_CONTROL_HEADER
+[ 179]operator(41):       )
+[ 179]operator(41):       )
+[ 179]delimiter:          {
+[ 180]reserved word(15):  if
+[ 180]operator(40):       (
+[ 180]identifier:         IsUpper
+[ 180]operator(40):       (
+[ 180]operator(42):       *
+[ 180]identifier:         message
+[ 180]operator(41):       )
+[ 180]operator(41):       )
+[ 180]delimiter:          {
+[ 181]identifier:         direction_control_on
+[ 181]operator(61):       =
+[ 181]constant:           true
+[ 181]delimiter:          ;
+[ 182]delimiter:          }
+[ 182]reserved word( 9):  else
+[ 182]reserved word(15):  if
+[ 182]operator(40):       (
+[ 182]identifier:         IsLower
+[ 182]operator(40):       (
+[ 182]operator(42):       *
+[ 182]identifier:         message
+[ 182]operator(41):       )
+[ 182]operator(41):       )
+[ 182]delimiter:          {
+[ 183]identifier:         direction_control_on
+[ 183]operator(61):       =
+[ 183]constant:           false
+[ 183]delimiter:          ;
+[ 184]delimiter:          }
+[ 184]reserved word( 9):  else
+[ 184]delimiter:          {
+[ 185]identifier:         ResponseError
+[ 185]operator(40):       (
+[ 185]operator(41):       )
+[ 185]delimiter:          ;
+[ 186]delimiter:          }
+[ 187]delimiter:          }
+[ 187]reserved word( 9):  else
+[ 187]reserved word(15):  if
+[ 187]operator(40):       (
+[ 187]operator(33):       !
+[ 187]identifier:         strcasecmp
+[ 187]operator(40):       (
+[ 187]identifier:         message
+[ 187]delimiter:          ,
+[ 187]identifier:         STEER_ACTUATOR_HEADER
+[ 187]operator(41):       )
+[ 187]operator(41):       )
+[ 187]delimiter:          {
+[ 188]reserved word(15):  if
+[ 188]operator(40):       (
+[ 188]identifier:         IsUpper
+[ 188]operator(40):       (
+[ 188]operator(42):       *
+[ 188]identifier:         message
+[ 188]operator(41):       )
+[ 188]operator(41):       )
+[ 188]delimiter:          {
+[ 189]identifier:         steer_actuator_on
+[ 189]operator(61):       =
+[ 189]constant:           true
+[ 189]delimiter:          ;
+[ 190]delimiter:          }
+[ 190]reserved word( 9):  else
+[ 190]reserved word(15):  if
+[ 190]operator(40):       (
+[ 190]identifier:         IsLower
+[ 190]operator(40):       (
+[ 190]operator(42):       *
+[ 190]identifier:         message
+[ 190]operator(41):       )
+[ 190]operator(41):       )
+[ 190]delimiter:          {
+[ 191]identifier:         steer_actuator_on
+[ 191]operator(61):       =
+[ 191]constant:           false
+[ 191]delimiter:          ;
+[ 192]delimiter:          }
+[ 192]reserved word( 9):  else
+[ 192]delimiter:          {
+[ 193]identifier:         ResponseError
+[ 193]operator(40):       (
+[ 193]operator(41):       )
+[ 193]delimiter:          ;
+[ 194]delimiter:          }
+[ 195]delimiter:          }
+[ 195]reserved word( 9):  else
+[ 195]reserved word(15):  if
+[ 195]operator(40):       (
+[ 195]operator(33):       !
+[ 195]identifier:         strcasecmp
+[ 195]operator(40):       (
+[ 195]identifier:         message
+[ 195]delimiter:          ,
+[ 195]identifier:         IMG_TRANS_HEADER
+[ 195]operator(41):       )
+[ 195]operator(41):       )
+[ 195]delimiter:          {
+[ 196]reserved word(15):  if
+[ 196]operator(40):       (
+[ 196]identifier:         IsUpper
+[ 196]operator(40):       (
+[ 196]operator(42):       *
+[ 196]identifier:         message
+[ 196]operator(41):       )
+[ 196]operator(41):       )
+[ 196]delimiter:          {
+[ 197]identifier:         img_trans_on
+[ 197]operator(61):       =
+[ 197]constant:           true
+[ 197]delimiter:          ;
+[ 198]delimiter:          }
+[ 198]reserved word( 9):  else
+[ 198]reserved word(15):  if
+[ 198]operator(40):       (
+[ 198]identifier:         IsLower
+[ 198]operator(40):       (
+[ 198]operator(42):       *
+[ 198]identifier:         message
+[ 198]operator(41):       )
+[ 198]operator(41):       )
+[ 198]delimiter:          {
+[ 199]identifier:         img_trans_on
+[ 199]operator(61):       =
+[ 199]constant:           false
+[ 199]delimiter:          ;
+[ 200]delimiter:          }
+[ 200]reserved word( 9):  else
+[ 200]delimiter:          {
+[ 201]identifier:         ResponseError
+[ 201]operator(40):       (
+[ 201]operator(41):       )
+[ 201]delimiter:          ;
+[ 202]delimiter:          }
+[ 203]delimiter:          }
+[ 203]reserved word( 9):  else
+[ 203]reserved word(15):  if
+[ 203]operator(40):       (
+[ 203]operator(33):       !
+[ 203]identifier:         strcasecmp
+[ 203]operator(40):       (
+[ 203]identifier:         message
+[ 203]delimiter:          ,
+[ 203]identifier:         STATE_TRANS_HEADER
+[ 203]operator(41):       )
+[ 203]operator(41):       )
+[ 203]delimiter:          {
+[ 204]reserved word(15):  if
+[ 204]operator(40):       (
+[ 204]identifier:         IsUpper
+[ 204]operator(40):       (
+[ 204]operator(42):       *
+[ 204]identifier:         message
+[ 204]operator(41):       )
+[ 204]operator(41):       )
+[ 204]delimiter:          {
+[ 205]identifier:         state_trans_on
+[ 205]operator(61):       =
+[ 205]constant:           true
+[ 205]delimiter:          ;
+[ 206]delimiter:          }
+[ 206]reserved word( 9):  else
+[ 206]reserved word(15):  if
+[ 206]operator(40):       (
+[ 206]identifier:         IsLower
+[ 206]operator(40):       (
+[ 206]operator(42):       *
+[ 206]identifier:         message
+[ 206]operator(41):       )
+[ 206]operator(41):       )
+[ 206]delimiter:          {
+[ 207]identifier:         state_trans_on
+[ 207]operator(61):       =
+[ 207]constant:           false
+[ 207]delimiter:          ;
+[ 208]delimiter:          }
+[ 208]reserved word( 9):  else
+[ 208]delimiter:          {
+[ 209]identifier:         ResponseError
+[ 209]operator(40):       (
+[ 209]operator(41):       )
+[ 209]delimiter:          ;
+[ 210]delimiter:          }
+[ 211]delimiter:          }
+[ 211]reserved word( 9):  else
+[ 211]reserved word(15):  if
+[ 211]operator(40):       (
+[ 211]operator(33):       !
+[ 211]identifier:         strcasecmp
+[ 211]operator(40):       (
+[ 211]identifier:         message
+[ 211]delimiter:          ,
+[ 211]identifier:         MODE_SWITCH_HEADER
+[ 211]operator(41):       )
+[ 211]operator(41):       )
+[ 211]delimiter:          {
+[ 212]reserved word(15):  if
+[ 212]operator(40):       (
+[ 212]identifier:         IsUpper
+[ 212]operator(40):       (
+[ 212]operator(42):       *
+[ 212]identifier:         message
+[ 212]operator(41):       )
+[ 212]operator(41):       )
+[ 212]delimiter:          {
+[ 213]identifier:         mode_switch_on
+[ 213]operator(61):       =
+[ 213]constant:           true
+[ 213]delimiter:          ;
+[ 214]delimiter:          }
+[ 214]reserved word( 9):  else
+[ 214]reserved word(15):  if
+[ 214]operator(40):       (
+[ 214]identifier:         IsLower
+[ 214]operator(40):       (
+[ 214]operator(42):       *
+[ 214]identifier:         message
+[ 214]operator(41):       )
+[ 214]operator(41):       )
+[ 214]delimiter:          {
+[ 215]identifier:         mode_switch_on
+[ 215]operator(61):       =
+[ 215]constant:           false
+[ 215]delimiter:          ;
+[ 216]delimiter:          }
+[ 216]reserved word( 9):  else
+[ 216]delimiter:          {
+[ 217]identifier:         ResponseError
+[ 217]operator(40):       (
+[ 217]operator(41):       )
+[ 217]delimiter:          ;
+[ 218]delimiter:          }
+[ 219]delimiter:          }
+[ 219]reserved word( 9):  else
+[ 219]reserved word(15):  if
+[ 219]operator(40):       (
+[ 219]operator(33):       !
+[ 219]identifier:         strcasecmp
+[ 219]operator(40):       (
+[ 219]identifier:         message
+[ 219]delimiter:          ,
+[ 219]identifier:         USE_INC_PID_HEADER
+[ 219]operator(41):       )
+[ 219]operator(41):       )
+[ 219]delimiter:          {
+[ 220]reserved word(15):  if
+[ 220]operator(40):       (
+[ 220]identifier:         IsUpper
+[ 220]operator(40):       (
+[ 220]operator(42):       *
+[ 220]identifier:         message
+[ 220]operator(41):       )
+[ 220]operator(41):       )
+[ 220]delimiter:          {
+[ 221]identifier:         use_inc_pid
+[ 221]operator(61):       =
+[ 221]constant:           true
+[ 221]delimiter:          ;
+[ 222]delimiter:          }
+[ 222]reserved word( 9):  else
+[ 222]reserved word(15):  if
+[ 222]operator(40):       (
+[ 222]identifier:         IsLower
+[ 222]operator(40):       (
+[ 222]operator(42):       *
+[ 222]identifier:         message
+[ 222]operator(41):       )
+[ 222]operator(41):       )
+[ 222]delimiter:          {
+[ 223]identifier:         use_inc_pid
+[ 223]operator(61):       =
+[ 223]constant:           false
+[ 223]delimiter:          ;
+[ 224]delimiter:          }
+[ 224]reserved word( 9):  else
+[ 224]delimiter:          {
+[ 225]identifier:         ResponseError
+[ 225]operator(40):       (
+[ 225]operator(41):       )
+[ 225]delimiter:          ;
+[ 226]delimiter:          }
+[ 227]delimiter:          }
+[ 227]reserved word( 9):  else
+[ 227]reserved word(15):  if
+[ 227]operator(40):       (
+[ 227]operator(33):       !
+[ 227]identifier:         strcasecmp
+[ 227]operator(40):       (
+[ 227]identifier:         message
+[ 227]delimiter:          ,
+[ 227]identifier:         USE_FTM_QD_HEADER
+[ 227]operator(41):       )
+[ 227]operator(41):       )
+[ 227]delimiter:          {
+[ 228]reserved word(15):  if
+[ 228]operator(40):       (
+[ 228]identifier:         IsUpper
+[ 228]operator(40):       (
+[ 228]operator(42):       *
+[ 228]identifier:         message
+[ 228]operator(41):       )
+[ 228]operator(41):       )
+[ 228]delimiter:          {
+[ 229]identifier:         use_ftm_qd
+[ 229]operator(61):       =
+[ 229]constant:           true
+[ 229]delimiter:          ;
+[ 230]delimiter:          }
+[ 230]reserved word( 9):  else
+[ 230]reserved word(15):  if
+[ 230]operator(40):       (
+[ 230]identifier:         IsLower
+[ 230]operator(40):       (
+[ 230]operator(42):       *
+[ 230]identifier:         message
+[ 230]operator(41):       )
+[ 230]operator(41):       )
+[ 230]delimiter:          {
+[ 231]identifier:         use_ftm_qd
+[ 231]operator(61):       =
+[ 231]constant:           false
+[ 231]delimiter:          ;
+[ 232]delimiter:          }
+[ 232]reserved word( 9):  else
+[ 232]delimiter:          {
+[ 233]identifier:         ResponseError
+[ 233]operator(40):       (
+[ 233]operator(41):       )
+[ 233]delimiter:          ;
+[ 234]delimiter:          }
+[ 235]delimiter:          }
+[ 235]reserved word( 9):  else
+[ 235]delimiter:          {
+[ 236]identifier:         ResponseError
+[ 236]operator(40):       (
+[ 236]operator(41):       )
+[ 236]delimiter:          ;
+[ 237]delimiter:          }
+[ 238]delimiter:          }
+[ 240]reserved word(29):  void
+[ 240]identifier:         UpdateParamValueAsInt16
+[ 240]operator(40):       (
+[ 240]identifier:         int16_t
+[ 240]operator(42):       *
+[ 240]identifier:         param
+[ 240]delimiter:          ,
+[ 240]reserved word( 4):  const
+[ 240]reserved word( 3):  char
+[ 240]operator(42):       *
+[ 240]identifier:         message
+[ 240]operator(41):       )
+[ 240]delimiter:          {
+[ 241]reserved word( 4):  const
+[ 241]reserved word( 3):  char
+[ 241]operator(42):       *
+[ 241]identifier:         value
+[ 241]operator(61):       =
+[ 241]operator(38):       &
+[ 241]identifier:         message
+[ 241]delimiter:          [
+[ 241]identifier:         PARAM_NAME_LENGTH
+[ 241]operator(43):       +
+[ 241]constant:           1
+[ 241]delimiter:          ]
+[ 241]delimiter:          ;
+[ 242]operator(42):       *
+[ 242]identifier:         param
+[ 242]operator(61):       =
+[ 242]identifier:         atoi
+[ 242]operator(40):       (
+[ 242]identifier:         value
+[ 242]operator(41):       )
+[ 242]delimiter:          ;
+[ 243]delimiter:          }
+[ 245]reserved word(29):  void
+[ 245]identifier:         UpdateParamValueAsInt32
+[ 245]operator(40):       (
+[ 245]identifier:         int32_t
+[ 245]operator(42):       *
+[ 245]identifier:         param
+[ 245]delimiter:          ,
+[ 245]reserved word( 4):  const
+[ 245]reserved word( 3):  char
+[ 245]operator(42):       *
+[ 245]identifier:         message
+[ 245]operator(41):       )
+[ 245]delimiter:          {
+[ 246]reserved word( 4):  const
+[ 246]reserved word( 3):  char
+[ 246]operator(42):       *
+[ 246]identifier:         value
+[ 246]operator(61):       =
+[ 246]operator(38):       &
+[ 246]identifier:         message
+[ 246]delimiter:          [
+[ 246]identifier:         PARAM_NAME_LENGTH
+[ 246]operator(43):       +
+[ 246]constant:           1
+[ 246]delimiter:          ]
+[ 246]delimiter:          ;
+[ 247]operator(42):       *
+[ 247]identifier:         param
+[ 247]operator(61):       =
+[ 247]identifier:         atoi
+[ 247]operator(40):       (
+[ 247]identifier:         value
+[ 247]operator(41):       )
+[ 247]delimiter:          ;
+[ 248]delimiter:          }
+[ 250]reserved word(29):  void
+[ 250]identifier:         UpdateParamValueAsDouble
+[ 250]operator(40):       (
+[ 250]reserved word( 8):  double
+[ 250]operator(42):       *
+[ 250]identifier:         param
+[ 250]delimiter:          ,
+[ 250]reserved word( 4):  const
+[ 250]reserved word( 3):  char
+[ 250]operator(42):       *
+[ 250]identifier:         message
+[ 250]operator(41):       )
+[ 250]delimiter:          {
+[ 251]reserved word( 4):  const
+[ 251]reserved word( 3):  char
+[ 251]operator(42):       *
+[ 251]identifier:         value
+[ 251]operator(61):       =
+[ 251]operator(38):       &
+[ 251]identifier:         message
+[ 251]delimiter:          [
+[ 251]identifier:         PARAM_NAME_LENGTH
+[ 251]operator(43):       +
+[ 251]constant:           1
+[ 251]delimiter:          ]
+[ 251]delimiter:          ;
+[ 252]operator(42):       *
+[ 252]identifier:         param
+[ 252]operator(61):       =
+[ 252]identifier:         atof
+[ 252]operator(40):       (
+[ 252]identifier:         value
+[ 252]operator(41):       )
+[ 252]delimiter:          ;
+[ 253]delimiter:          }
+[ 255]reserved word(29):  void
+[ 255]identifier:         ParamModificationParse
+[ 255]operator(40):       (
+[ 255]reserved word( 4):  const
+[ 255]reserved word( 3):  char
+[ 255]operator(42):       *
+[ 255]identifier:         message
+[ 255]operator(41):       )
+[ 255]delimiter:          {
+[ 256]reserved word(15):  if
+[ 256]operator(40):       (
+[ 256]operator(33):       !
+[ 256]identifier:         strncmp
+[ 256]operator(40):       (
+[ 256]identifier:         message
+[ 256]delimiter:          ,
+[ 256]identifier:         SPEED_CONTROL_LEFT_P_HEADER
+[ 256]delimiter:          ,
+[ 256]identifier:         PARAM_NAME_LENGTH
+[ 256]operator(41):       )
+[ 256]operator(41):       )
+[ 256]delimiter:          {
+[ 257]identifier:         UpdateParamValueAsDouble
+[ 257]operator(40):       (
+[ 257]operator(38):       &
+[ 257]identifier:         leftPid
+[ 257]operator(46):       .
+[ 257]identifier:         kp
+[ 257]delimiter:          ,
+[ 257]identifier:         message
+[ 257]operator(41):       )
+[ 257]delimiter:          ;
+[ 259]delimiter:          }
+[ 259]reserved word( 9):  else
+[ 259]reserved word(15):  if
+[ 259]operator(40):       (
+[ 259]operator(33):       !
+[ 259]identifier:         strncmp
+[ 259]operator(40):       (
+[ 259]identifier:         message
+[ 259]delimiter:          ,
+[ 259]identifier:         SPEED_CONTROL_LEFT_I_HEADER
+[ 259]delimiter:          ,
+[ 259]identifier:         PARAM_NAME_LENGTH
+[ 259]operator(41):       )
+[ 259]operator(41):       )
+[ 259]delimiter:          {
+[ 260]identifier:         UpdateParamValueAsDouble
+[ 260]operator(40):       (
+[ 260]operator(38):       &
+[ 260]identifier:         leftPid
+[ 260]operator(46):       .
+[ 260]identifier:         ki
+[ 260]delimiter:          ,
+[ 260]identifier:         message
+[ 260]operator(41):       )
+[ 260]delimiter:          ;
+[ 262]delimiter:          }
+[ 262]reserved word( 9):  else
+[ 262]reserved word(15):  if
+[ 262]operator(40):       (
+[ 262]operator(33):       !
+[ 262]identifier:         strncmp
+[ 262]operator(40):       (
+[ 262]identifier:         message
+[ 262]delimiter:          ,
+[ 262]identifier:         SPEED_CONTROL_LEFT_D_HEADER
+[ 262]delimiter:          ,
+[ 262]identifier:         PARAM_NAME_LENGTH
+[ 262]operator(41):       )
+[ 262]operator(41):       )
+[ 262]delimiter:          {
+[ 263]identifier:         UpdateParamValueAsDouble
+[ 263]operator(40):       (
+[ 263]operator(38):       &
+[ 263]identifier:         leftPid
+[ 263]operator(46):       .
+[ 263]identifier:         kd
+[ 263]delimiter:          ,
+[ 263]identifier:         message
+[ 263]operator(41):       )
+[ 263]delimiter:          ;
+[ 265]delimiter:          }
+[ 265]reserved word( 9):  else
+[ 265]reserved word(15):  if
+[ 265]operator(40):       (
+[ 265]operator(33):       !
+[ 265]identifier:         strncmp
+[ 265]operator(40):       (
+[ 265]identifier:         message
+[ 265]delimiter:          ,
+[ 265]identifier:         SPEED_CONTROL_RIGHT_P_HEADER
+[ 265]delimiter:          ,
+[ 265]identifier:         PARAM_NAME_LENGTH
+[ 265]operator(41):       )
+[ 265]operator(41):       )
+[ 265]delimiter:          {
+[ 266]identifier:         UpdateParamValueAsDouble
+[ 266]operator(40):       (
+[ 266]operator(38):       &
+[ 266]identifier:         rightPid
+[ 266]operator(46):       .
+[ 266]identifier:         kp
+[ 266]delimiter:          ,
+[ 266]identifier:         message
+[ 266]operator(41):       )
+[ 266]delimiter:          ;
+[ 268]delimiter:          }
+[ 268]reserved word( 9):  else
+[ 268]reserved word(15):  if
+[ 268]operator(40):       (
+[ 268]operator(33):       !
+[ 268]identifier:         strncmp
+[ 268]operator(40):       (
+[ 268]identifier:         message
+[ 268]delimiter:          ,
+[ 268]identifier:         SPEED_CONTROL_RIGHT_I_HEADER
+[ 268]delimiter:          ,
+[ 268]identifier:         PARAM_NAME_LENGTH
+[ 268]operator(41):       )
+[ 268]operator(41):       )
+[ 268]delimiter:          {
+[ 269]identifier:         UpdateParamValueAsDouble
+[ 269]operator(40):       (
+[ 269]operator(38):       &
+[ 269]identifier:         rightPid
+[ 269]operator(46):       .
+[ 269]identifier:         ki
+[ 269]delimiter:          ,
+[ 269]identifier:         message
+[ 269]operator(41):       )
+[ 269]delimiter:          ;
+[ 271]delimiter:          }
+[ 271]reserved word( 9):  else
+[ 271]reserved word(15):  if
+[ 271]operator(40):       (
+[ 271]operator(33):       !
+[ 271]identifier:         strncmp
+[ 271]operator(40):       (
+[ 271]identifier:         message
+[ 271]delimiter:          ,
+[ 271]identifier:         SPEED_CONTROL_RIGHT_D_HEADER
+[ 271]delimiter:          ,
+[ 271]identifier:         PARAM_NAME_LENGTH
+[ 271]operator(41):       )
+[ 271]operator(41):       )
+[ 271]delimiter:          {
+[ 272]identifier:         UpdateParamValueAsDouble
+[ 272]operator(40):       (
+[ 272]operator(38):       &
+[ 272]identifier:         rightPid
+[ 272]operator(46):       .
+[ 272]identifier:         kd
+[ 272]delimiter:          ,
+[ 272]identifier:         message
+[ 272]operator(41):       )
+[ 272]delimiter:          ;
+[ 274]delimiter:          }
+[ 274]reserved word( 9):  else
+[ 274]reserved word(15):  if
+[ 274]operator(40):       (
+[ 274]operator(33):       !
+[ 274]identifier:         strncmp
+[ 274]operator(40):       (
+[ 274]identifier:         message
+[ 274]delimiter:          ,
+[ 274]identifier:         STEER_ACTUATOR_LEFT_VALUE_HEADER
+[ 274]delimiter:          ,
+[ 274]identifier:         PARAM_NAME_LENGTH
+[ 274]operator(41):       )
+[ 274]operator(41):       )
+[ 274]delimiter:          {
+[ 275]identifier:         UpdateParamValueAsInt16
+[ 275]operator(40):       (
+[ 275]operator(38):       &
+[ 275]identifier:         steer_actuator_left
+[ 275]delimiter:          ,
+[ 275]identifier:         message
+[ 275]operator(41):       )
+[ 275]delimiter:          ;
+[ 277]delimiter:          }
+[ 277]reserved word( 9):  else
+[ 277]reserved word(15):  if
+[ 277]operator(40):       (
+[ 277]operator(33):       !
+[ 277]identifier:         strncmp
+[ 277]operator(40):       (
+[ 277]identifier:         message
+[ 277]delimiter:          ,
+[ 277]identifier:         STEER_ACTUATOR_MIDDLE_VALUE_HEADER
+[ 277]delimiter:          ,
+[ 277]identifier:         PARAM_NAME_LENGTH
+[ 277]operator(41):       )
+[ 277]operator(41):       )
+[ 277]delimiter:          {
+[ 278]identifier:         UpdateParamValueAsInt16
+[ 278]operator(40):       (
+[ 278]operator(38):       &
+[ 278]identifier:         steer_actuator_middle
+[ 278]delimiter:          ,
+[ 278]identifier:         message
+[ 278]operator(41):       )
+[ 278]delimiter:          ;
+[ 280]delimiter:          }
+[ 280]reserved word( 9):  else
+[ 280]reserved word(15):  if
+[ 280]operator(40):       (
+[ 280]operator(33):       !
+[ 280]identifier:         strncmp
+[ 280]operator(40):       (
+[ 280]identifier:         message
+[ 280]delimiter:          ,
+[ 280]identifier:         STEER_ACTUATOR_RIGHT_VALUE_HEADER
+[ 280]delimiter:          ,
+[ 280]identifier:         PARAM_NAME_LENGTH
+[ 280]operator(41):       )
+[ 280]operator(41):       )
+[ 280]delimiter:          {
+[ 281]identifier:         UpdateParamValueAsInt16
+[ 281]operator(40):       (
+[ 281]operator(38):       &
+[ 281]identifier:         steer_actuator_right
+[ 281]delimiter:          ,
+[ 281]identifier:         message
+[ 281]operator(41):       )
+[ 281]delimiter:          ;
+[ 283]delimiter:          }
+[ 283]reserved word( 9):  else
+[ 283]reserved word(15):  if
+[ 283]operator(40):       (
+[ 283]operator(33):       !
+[ 283]identifier:         strncmp
+[ 283]operator(40):       (
+[ 283]identifier:         message
+[ 283]delimiter:          ,
+[ 283]identifier:         SPEED_CONTROL_LEFT_SPEED_HEADER
+[ 283]delimiter:          ,
+[ 283]identifier:         PARAM_NAME_LENGTH
+[ 283]operator(41):       )
+[ 283]operator(41):       )
+[ 283]delimiter:          {
+[ 284]identifier:         UpdateParamValueAsInt16
+[ 284]operator(40):       (
+[ 284]operator(38):       &
+[ 284]identifier:         leftPid
+[ 284]operator(46):       .
+[ 284]identifier:         targetValue
+[ 284]delimiter:          ,
+[ 284]identifier:         message
+[ 284]operator(41):       )
+[ 284]delimiter:          ;
+[ 286]delimiter:          }
+[ 286]reserved word( 9):  else
+[ 286]reserved word(15):  if
+[ 286]operator(40):       (
+[ 286]operator(33):       !
+[ 286]identifier:         strncmp
+[ 286]operator(40):       (
+[ 286]identifier:         message
+[ 286]delimiter:          ,
+[ 286]identifier:         SPEED_CONTROL_RIGHT_SPEED_HEADER
+[ 286]delimiter:          ,
+[ 286]identifier:         PARAM_NAME_LENGTH
+[ 286]operator(41):       )
+[ 286]operator(41):       )
+[ 286]delimiter:          {
+[ 287]identifier:         UpdateParamValueAsInt16
+[ 287]operator(40):       (
+[ 287]operator(38):       &
+[ 287]identifier:         rightPid
+[ 287]operator(46):       .
+[ 287]identifier:         targetValue
+[ 287]delimiter:          ,
+[ 287]identifier:         message
+[ 287]operator(41):       )
+[ 287]delimiter:          ;
+[ 289]delimiter:          }
+[ 289]reserved word( 9):  else
+[ 289]reserved word(15):  if
+[ 289]operator(40):       (
+[ 289]operator(33):       !
+[ 289]identifier:         strncmp
+[ 289]operator(40):       (
+[ 289]identifier:         message
+[ 289]delimiter:          ,
+[ 289]identifier:         SPEED_CONTROL_SUM_ERR_MAX_HEADER
+[ 289]delimiter:          ,
+[ 289]identifier:         PARAM_NAME_LENGTH
+[ 289]operator(41):       )
+[ 289]operator(41):       )
+[ 289]delimiter:          {
+[ 290]identifier:         UpdateParamValueAsInt16
+[ 290]operator(40):       (
+[ 290]operator(38):       &
+[ 290]identifier:         speed_control_sum_err_max
+[ 290]delimiter:          ,
+[ 290]identifier:         message
+[ 290]operator(41):       )
+[ 290]delimiter:          ;
+[ 292]delimiter:          }
+[ 292]reserved word( 9):  else
+[ 292]reserved word(15):  if
+[ 292]operator(40):       (
+[ 292]operator(33):       !
+[ 292]identifier:         strncmp
+[ 292]operator(40):       (
+[ 292]identifier:         message
+[ 292]delimiter:          ,
+[ 292]identifier:         SPEED_CONTROL_SPEED_HEADER
+[ 292]delimiter:          ,
+[ 292]identifier:         PARAM_NAME_LENGTH
+[ 292]operator(41):       )
+[ 292]operator(41):       )
+[ 292]delimiter:          {
+[ 293]identifier:         UpdateParamValueAsInt16
+[ 293]operator(40):       (
+[ 293]operator(38):       &
+[ 293]identifier:         speed_control_speed
+[ 293]delimiter:          ,
+[ 293]identifier:         message
+[ 293]operator(41):       )
+[ 293]delimiter:          ;
+[ 295]delimiter:          }
+[ 295]reserved word( 9):  else
+[ 295]reserved word(15):  if
+[ 295]operator(40):       (
+[ 295]operator(33):       !
+[ 295]identifier:         strncmp
+[ 295]operator(40):       (
+[ 295]identifier:         message
+[ 295]delimiter:          ,
+[ 295]identifier:         IMG_BORDER_SCAN_COMPENSATION_HEADER
+[ 295]delimiter:          ,
+[ 295]identifier:         PARAM_NAME_LENGTH
+[ 295]operator(41):       )
+[ 295]operator(41):       )
+[ 295]delimiter:          {
+[ 296]identifier:         UpdateParamValueAsInt16
+[ 296]operator(40):       (
+[ 296]operator(38):       &
+[ 296]identifier:         img_border_scan_compensation
+[ 296]delimiter:          ,
+[ 296]identifier:         message
+[ 296]operator(41):       )
+[ 296]delimiter:          ;
+[ 298]delimiter:          }
+[ 298]reserved word( 9):  else
+[ 298]reserved word(15):  if
+[ 298]operator(40):       (
+[ 298]operator(33):       !
+[ 298]identifier:         strncmp
+[ 298]operator(40):       (
+[ 298]identifier:         message
+[ 298]delimiter:          ,
+[ 298]identifier:         WIDE_ROAD_SIZE_HEADER
+[ 298]delimiter:          ,
+[ 298]identifier:         PARAM_NAME_LENGTH
+[ 298]operator(41):       )
+[ 298]operator(41):       )
+[ 298]delimiter:          {
+[ 299]identifier:         UpdateParamValueAsInt16
+[ 299]operator(40):       (
+[ 299]operator(38):       &
+[ 299]identifier:         wide_road_size
+[ 299]delimiter:          ,
+[ 299]identifier:         message
+[ 299]operator(41):       )
+[ 299]delimiter:          ;
+[ 301]delimiter:          }
+[ 301]reserved word( 9):  else
+[ 301]reserved word(15):  if
+[ 301]operator(40):       (
+[ 301]operator(33):       !
+[ 301]identifier:         strncmp
+[ 301]operator(40):       (
+[ 301]identifier:         message
+[ 301]delimiter:          ,
+[ 301]identifier:         CURVES_SENSITIVITY_HEADER
+[ 301]delimiter:          ,
+[ 301]identifier:         PARAM_NAME_LENGTH
+[ 301]operator(41):       )
+[ 301]operator(41):       )
+[ 301]delimiter:          {
+[ 302]identifier:         UpdateParamValueAsInt16
+[ 302]operator(40):       (
+[ 302]operator(38):       &
+[ 302]identifier:         curve_sensitivity
+[ 302]delimiter:          ,
+[ 302]identifier:         message
+[ 302]operator(41):       )
+[ 302]delimiter:          ;
+[ 304]delimiter:          }
+[ 304]reserved word( 9):  else
+[ 304]reserved word(15):  if
+[ 304]operator(40):       (
+[ 304]operator(33):       !
+[ 304]identifier:         strncmp
+[ 304]operator(40):       (
+[ 304]identifier:         message
+[ 304]delimiter:          ,
+[ 304]identifier:         SLOPE_SENSITIVITY_HEADER
+[ 304]delimiter:          ,
+[ 304]identifier:         PARAM_NAME_LENGTH
+[ 304]operator(41):       )
+[ 304]operator(41):       )
+[ 304]delimiter:          {
+[ 305]identifier:         UpdateParamValueAsInt16
+[ 305]operator(40):       (
+[ 305]operator(38):       &
+[ 305]identifier:         slope_sensitivity
+[ 305]delimiter:          ,
+[ 305]identifier:         message
+[ 305]operator(41):       )
+[ 305]delimiter:          ;
+[ 307]delimiter:          }
+[ 307]reserved word( 9):  else
+[ 307]reserved word(15):  if
+[ 307]operator(40):       (
+[ 307]operator(33):       !
+[ 307]identifier:         strncmp
+[ 307]operator(40):       (
+[ 307]identifier:         message
+[ 307]delimiter:          ,
+[ 307]identifier:         INFLEXION_SENSITIVITY_HEADER
+[ 307]delimiter:          ,
+[ 307]identifier:         PARAM_NAME_LENGTH
+[ 307]operator(41):       )
+[ 307]operator(41):       )
+[ 307]delimiter:          {
+[ 308]identifier:         UpdateParamValueAsInt16
+[ 308]operator(40):       (
+[ 308]operator(38):       &
+[ 308]identifier:         inflexion_sensitivity
+[ 308]delimiter:          ,
+[ 308]identifier:         message
+[ 308]operator(41):       )
+[ 308]delimiter:          ;
+[ 310]delimiter:          }
+[ 310]reserved word( 9):  else
+[ 310]reserved word(15):  if
+[ 310]operator(40):       (
+[ 310]operator(33):       !
+[ 310]identifier:         strncmp
+[ 310]operator(40):       (
+[ 310]identifier:         message
+[ 310]delimiter:          ,
+[ 310]identifier:         CROSS_ROAD_SIZE_HEADER
+[ 310]delimiter:          ,
+[ 310]identifier:         PARAM_NAME_LENGTH
+[ 310]operator(41):       )
+[ 310]operator(41):       )
+[ 310]delimiter:          {
+[ 311]identifier:         UpdateParamValueAsInt16
+[ 311]operator(40):       (
+[ 311]operator(38):       &
+[ 311]identifier:         cross_road_size
+[ 311]delimiter:          ,
+[ 311]identifier:         message
+[ 311]operator(41):       )
+[ 311]delimiter:          ;
+[ 313]delimiter:          }
+[ 313]reserved word( 9):  else
+[ 313]reserved word(15):  if
+[ 313]operator(40):       (
+[ 313]operator(33):       !
+[ 313]identifier:         strncmp
+[ 313]operator(40):       (
+[ 313]identifier:         message
+[ 313]delimiter:          ,
+[ 313]identifier:         STRAIGHT_ROAD_SENSITIVITY_HEADER
+[ 313]delimiter:          ,
+[ 313]identifier:         PARAM_NAME_LENGTH
+[ 313]operator(41):       )
+[ 313]operator(41):       )
+[ 313]delimiter:          {
+[ 314]identifier:         UpdateParamValueAsInt16
+[ 314]operator(40):       (
+[ 314]operator(38):       &
+[ 314]identifier:         straight_road_sensitivity
+[ 314]delimiter:          ,
+[ 314]identifier:         message
+[ 314]operator(41):       )
+[ 314]delimiter:          ;
+[ 316]delimiter:          }
+[ 316]reserved word( 9):  else
+[ 316]reserved word(15):  if
+[ 316]operator(40):       (
+[ 316]operator(33):       !
+[ 316]identifier:         strncmp
+[ 316]operator(40):       (
+[ 316]identifier:         message
+[ 316]delimiter:          ,
+[ 316]identifier:         DIRECTION_CONTROL_KD_HEADER
+[ 316]delimiter:          ,
+[ 316]identifier:         PARAM_NAME_LENGTH
+[ 316]operator(41):       )
+[ 316]operator(41):       )
+[ 316]delimiter:          {
+[ 317]identifier:         UpdateParamValueAsDouble
+[ 317]operator(40):       (
+[ 317]operator(38):       &
+[ 317]identifier:         direction_control_kd
+[ 317]delimiter:          ,
+[ 317]identifier:         message
+[ 317]operator(41):       )
+[ 317]delimiter:          ;
+[ 319]delimiter:          }
+[ 319]reserved word( 9):  else
+[ 319]reserved word(15):  if
+[ 319]operator(40):       (
+[ 319]operator(33):       !
+[ 319]identifier:         strncmp
+[ 319]operator(40):       (
+[ 319]identifier:         message
+[ 319]delimiter:          ,
+[ 319]identifier:         DIRECTION_CONTROL_KPJ_HEADER
+[ 319]delimiter:          ,
+[ 319]identifier:         PARAM_NAME_LENGTH
+[ 319]operator(41):       )
+[ 319]operator(41):       )
+[ 319]delimiter:          {
+[ 320]identifier:         UpdateParamValueAsDouble
+[ 320]operator(40):       (
+[ 320]operator(38):       &
+[ 320]identifier:         direction_control_kpj
+[ 320]delimiter:          ,
+[ 320]identifier:         message
+[ 320]operator(41):       )
+[ 320]delimiter:          ;
+[ 322]delimiter:          }
+[ 322]reserved word( 9):  else
+[ 322]reserved word(15):  if
+[ 322]operator(40):       (
+[ 322]operator(33):       !
+[ 322]identifier:         strncmp
+[ 322]operator(40):       (
+[ 322]identifier:         message
+[ 322]delimiter:          ,
+[ 322]identifier:         DIRECTION_CONTROL_KPC_HEADER
+[ 322]delimiter:          ,
+[ 322]identifier:         PARAM_NAME_LENGTH
+[ 322]operator(41):       )
+[ 322]operator(41):       )
+[ 322]delimiter:          {
+[ 323]identifier:         UpdateParamValueAsDouble
+[ 323]operator(40):       (
+[ 323]operator(38):       &
+[ 323]identifier:         direction_control_kpc
+[ 323]delimiter:          ,
+[ 323]identifier:         message
+[ 323]operator(41):       )
+[ 323]delimiter:          ;
+[ 325]delimiter:          }
+[ 325]reserved word( 9):  else
+[ 325]reserved word(15):  if
+[ 325]operator(40):       (
+[ 325]operator(33):       !
+[ 325]identifier:         strncmp
+[ 325]operator(40):       (
+[ 325]identifier:         message
+[ 325]delimiter:          ,
+[ 325]identifier:         DIRECTION_CONTROL_ANGLE_MAX_HEADER
+[ 325]delimiter:          ,
+[ 325]identifier:         PARAM_NAME_LENGTH
+[ 325]operator(41):       )
+[ 325]operator(41):       )
+[ 325]delimiter:          {
+[ 326]identifier:         UpdateParamValueAsDouble
+[ 326]operator(40):       (
+[ 326]operator(38):       &
+[ 326]identifier:         direction_control_angle_max
+[ 326]delimiter:          ,
+[ 326]identifier:         message
+[ 326]operator(41):       )
+[ 326]delimiter:          ;
+[ 328]delimiter:          }
+[ 328]reserved word( 9):  else
+[ 328]delimiter:          {
+[ 329]identifier:         ResponseError
+[ 329]operator(40):       (
+[ 329]operator(41):       )
+[ 329]delimiter:          ;
+[ 330]delimiter:          }
+[ 331]delimiter:          }
+
+

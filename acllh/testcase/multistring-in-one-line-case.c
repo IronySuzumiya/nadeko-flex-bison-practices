@@ -1,0 +1,1 @@
+char testcase1[STRING_LEN] = "This is one sentence."; char testcase2[STRING_LEN] = "This is another sentence.";
