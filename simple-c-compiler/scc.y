@@ -140,6 +140,7 @@ _arg_list
 arg_list
 : dtype ID _arg_list { $$ = make_arglist(make_typelist($1, $3->tl), make_symlist($2, $3->sl)); free($3); }
 | TYPE_VOID { $$ = make_arglist(NULL, NULL); }
+| %empty { $$ = make_arglist(NULL, NULL); }
 ;
 
 func_info

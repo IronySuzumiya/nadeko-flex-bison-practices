@@ -483,11 +483,11 @@ struct ast *make_funcdeclr(struct funcdef *finfo, char impl) {
                 printf("void");
             } else {
                 printf("%s %s", DATATYPE_NAME(tl->datatype), sl->s->name);
-            }
-            for(int i = 1; i < nargs; ++i) {
-                tl = tl->next;
-                sl = sl->next;
-                printf(", %s %s", DATATYPE_NAME(tl->datatype), sl->s->name);
+                for(int i = 1; i < nargs; ++i) {
+                    tl = tl->next;
+                    sl = sl->next;
+                    printf(", %s %s", DATATYPE_NAME(tl->datatype), sl->s->name);
+                }
             }
             printf(") with %d args declared at line %d\n", nargs, yylineno);
             
@@ -608,14 +608,13 @@ struct funcdef *make_funcimplheader(struct funcdef *finfo) {
         printf("void");
     } else {
         printf("%s %s", DATATYPE_NAME(tl->datatype), sl->s->name);
-    }
-    while(tl->next != NULL && sl->next != NULL) {
-        tl = tl->next;
-        sl = sl->next;
-        printf(", %s %s", DATATYPE_NAME(tl->datatype), sl->s->name);
+        while(tl->next != NULL && sl->next != NULL) {
+            tl = tl->next;
+            sl = sl->next;
+            printf(", %s %s", DATATYPE_NAME(tl->datatype), sl->s->name);
+        }
     }
     printf(") with %d args implementation begin at line %d\n", fprop->nargs, yylineno);
-    
     #endif
     
     finfo->nodetype = NODETYPE_FUNCIMPLAST;
