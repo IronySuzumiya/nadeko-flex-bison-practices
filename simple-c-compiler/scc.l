@@ -55,7 +55,7 @@ comment	                "//".*$
             case 'n': yylval.cv = '\n'; break;
             case 'r': yylval.cv = '\r'; break;
             case 't': yylval.cv = '\t'; break;
-            default: yyerror("Mystery escape char %c at line %d\n", yytext[2], yylineno);
+            default: yyerror("Mystery escape char %c at line %d", yytext[2], yylineno);
         }
     } else {
         yylval.cv = yytext[1];
@@ -93,7 +93,7 @@ comment	                "//".*$
 
 {macro} { }
 
-[~!^&|\-+*/%=<>()\[\],;] {
+[~!^&|\-+*/%=<>()] {
     return yytext[0];
 }
 
@@ -110,7 +110,7 @@ comment	                "//".*$
 "sizeof" { return SIZEOF; }
 
 {identifier} {
-    yylval.s = store_sym(yytext);
+    yylval.yys = store_sym(yytext);
     return ID;
 }
 
@@ -132,6 +132,6 @@ comment	                "//".*$
 
 \n { }
 
-. { yyerror("Mystery character %c at line %d\n", yytext[0], yylineno); }
+. { yyerror("Mystery character %c at line %d", yytext[0], yylineno); }
 
 %%

@@ -3,7 +3,7 @@ all:
 scc:
 	bison -o scc.tab.c -d scc.y
 	flex -o scc.lex.c scc.l
-	cc -o scc scc.lex.c scc.tab.c
+	cc -o scc scc.lex.c scc.tab.c scc.c
 clean:
 	rm *.tab.*
 	rm *.lex.*

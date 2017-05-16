@@ -4,6 +4,23 @@
 #include <string.h>
 #include <stdarg.h>
 
+#ifdef DEBUG
+
+static inline void debug_log(char *s, ...) {
+    va_list ap;
+    va_start(ap, s);
+    
+    fprintf(stdout, ">> ");
+    vfprintf(stdout, s, ap);
+    fprintf(stdout, "\n");
+}
+
+#define DATATYPE_NAME(a)    ((a) == NODETYPE_CHAR ? "char" : (a) == NODETYPE_INT ? "int" :\
+                             (a) == NODETYPE_FLOAT ? "float" : (a) == NODETYPE_VOID ? "void" : "unknown")
+#else
+#define debug_log(...);
+#endif
+
 extern int yylineno;
 
 extern struct locsym *yyloctab;
@@ -33,7 +50,7 @@ struct sym *store_sym(char *name) {
     while(--scount >= 0) {
         if(!sp->name) {
             sp->name = strdup(name);
-            debug_log("new symbol %s stored at line %d\n", name, yylineno);
+            debug_log("new symbol %s stored at line %d", name, yylineno);
             return sp;
         }
         else if(sp->name && !strcmp(sp->name, name)) {
@@ -45,7 +62,7 @@ struct sym *store_sym(char *name) {
         }
     }
     
-    yyerror("symbol table overflow at line %d\n", yylineno);
+    yyerror("symbol table overflow at line %d", yylineno);
     abort();
     return NULL;
 }
@@ -57,11 +74,11 @@ struct glosym *register_glosym(char *name) {
     while(--scount >= 0) {
         if(!sp->name) {
             sp->name = name; // don't need to duplicate
-            debug_log("symbol %s used by global symbol table at line %d\n", name, yylineno);
+            debug_log("symbol %s used by global symbol table at line %d", name, yylineno);
             return sp;
         }
         else if(sp->name && !strcmp(sp->name, name)) {
-            yyerror("internal error: symbol duplicated register at line %d\n", yylineno);
+            yyerror("internal error: symbol duplicated register at line %d", yylineno);
             return sp;
         }
         
@@ -70,7 +87,7 @@ struct glosym *register_glosym(char *name) {
         }
     }
     
-    yyerror("glosymbol table overflow at line %d\n", yylineno);
+    yyerror("glosymbol table overflow at line %d", yylineno);
     abort();
     return NULL;
 }
@@ -107,17 +124,17 @@ struct glosym *lookup_glosym(char *name) {
 }
 
 struct locsym *register_locsym(struct locsym tab[], char *name) {
-    struct glosym *sp = &tab[symhash(name) % LOCSYMTABSIZE];
+    struct locsym *sp = &tab[symhash(name) % LOCSYMTABSIZE];
     int scount = LOCSYMTABSIZE;
     
     while(--scount >= 0) {
         if(!sp->name) {
             sp->name = name; // don't need to duplicate
-            debug_log("symbol %s used by local symbol table at line %d\n", name, yylineno);
+            debug_log("symbol %s used by local symbol table at line %d", name, yylineno);
             return sp;
         }
         else if(sp->name && !strcmp(sp->name, name)) {
-            yyerror("internal error: symbol duplicated register at line %d\n", yylineno);
+            yyerror("internal error: symbol duplicated register at line %d", yylineno);
             return sp;
         }
         
@@ -126,7 +143,7 @@ struct locsym *register_locsym(struct locsym tab[], char *name) {
         }
     }
     
-    yyerror("locsymbol table overflow at line %d\n", yylineno);
+    yyerror("locsymbol table overflow at line %d", yylineno);
     abort();
     return NULL;
 }
@@ -169,14 +186,16 @@ struct ast *make_ast(int nodetype, struct ast *l, struct ast *r) {
     a->l = l;
     a->r = r;
     
-    debug_log("AST node %d at line %d\n", nodetype, yylineno);
+    //debug_log("AST node %d at line %d", nodetype, yylineno);
     
     return a;
 }
 
-struct ast *make_funccall(struct glosym *s, struct ast *args) {
-    if(s->nodetype != NODETYPE_FUNCDECLR && s->nodetype != NODETYPE_FUNCIMPL) {
-        yyerror("call to undefined function %s at line %d\n", s->name, yylineno);
+struct ast *make_funccall(struct sym *s, struct ast *args) {
+    struct glosym *gs = lookup_glosym(s->name);
+    
+    if(!gs || (gs->nodetype != NODETYPE_FUNCDECLR && gs->nodetype != NODETYPE_FUNCIMPL)) {
+        yyerror("call to undefined function %s at line %d", s->name, yylineno);
         free_ast(args);
         return NULL;
     }
@@ -184,27 +203,27 @@ struct ast *make_funccall(struct glosym *s, struct ast *args) {
     struct funccall *fc = makesure_malloc(sizeof(struct funccall));
     
     fc->nodetype = NODETYPE_FUNCCALL;
-    fc->f = s;
+    fc->f = gs;
     
     int nargs;
     struct ast *temp = args;
-    if((nargs = ((struct func *)(s->prop))->nargs) > 0) {
+    if((nargs = ((struct func *)(gs->prop))->nargs) > 0) {
         do { --nargs; temp = temp->r; } while(temp && temp->nodetype == NODETYPE_LIST);
         if(nargs > 0) {
-            yyerror("need more %d args for calling to %s at line %d\n", nargs, s->name, yylineno);
+            yyerror("need more %d args for calling to %s at line %d", nargs, gs->name, yylineno);
         } else if(nargs < 0) {
-            yyerror("need less %d args for calling to %s at line %d\n", -nargs, s->name, yylineno);
+            yyerror("need less %d args for calling to %s at line %d", -nargs, gs->name, yylineno);
         }
         fc->args = args;
     } else {
         fc->args = NULL;
         if(temp && temp->nodetype == NODETYPE_LIST) {
-            yyerror("pass args to function %s with no params at line %d\n", s->name, yylineno);
+            yyerror("pass args to function %s with no params at line %d", gs->name, yylineno);
         }
         free_ast(args);
     }
     
-    debug_log("call to function %s at line %d\n", s->name, yylineno);
+    debug_log("call to function %s at line %d", gs->name, yylineno);
     
     return (struct ast *)fc;
 }
@@ -215,38 +234,38 @@ struct ast *make_symref(struct locsym tab[], struct sym *s) {
     if(tab && (ls = lookup_locsym(tab, s->name))) {
         struct symref *sr = makesure_malloc(sizeof(struct symref));
         sr->nodetype = NODETYPE_LOCREF;
-        sr->s = ls;
+        sr->s = (struct sym *)ls;
         
-        debug_log("refer to local var %s at line %d\n", s->name, yylineno);
+        debug_log("refer to local var %s at line %d", s->name, yylineno);
         
         return (struct ast *)sr;
         
     } else if(gs = lookup_glosym(s->name)) {
         struct symref *sr = makesure_malloc(sizeof(struct symref));
         sr->nodetype = NODETYPE_GLOREF;
-        sr->s = gs;
+        sr->s = (struct sym *)gs;
         
-        debug_log("refer to global var %s at line %d\n", s->name, yylineno);
+        debug_log("refer to global var %s at line %d", s->name, yylineno);
         
         return (struct ast *)sr;
         
     } else {
-        yyerror("refer to undefined var at line %d\n", yylineno);
+        yyerror("refer to undefined var at line %d", yylineno);
         return NULL;
     }
 }
 
 struct ast *make_symasgn(struct locsym tab[], struct sym *s, struct ast *val) {
     struct symref *sr;
-    if(sr = make_symref(tab, s)) {
+    if(sr = (struct symref *)make_symref(tab, s)) {
         struct symasgn *sa = makesure_malloc(sizeof(struct symasgn));
         sa->nodetype = NODETYPE_SYMASGN;
         sa->sr = sr;
         sa->val = val;
         
         debug_log(((struct symref *)sr)->nodetype == NODETYPE_GLOREF ?
-            "assign to global var %s at line %d\n" :
-            "assign to local var %s at line %d\n", s->name, yylineno);
+            "assign to global var %s at line %d" :
+            "assign to local var %s at line %d", s->name, yylineno);
         
         return (struct ast *)sa;
         
@@ -265,8 +284,8 @@ struct ast *make_flow(int nodetype, struct ast *cond, struct ast *tt, struct ast
     fl->ft = ft;
     
     debug_log(nodetype == 'I' ?
-        (ft != NULL ? "if-else block at %d\n" : "if block at %d\n") :
-        "while block at %d\n", yylineno);
+        (ft != NULL ? "if-else block at %d" : "if block at %d") :
+        "while block at %d", yylineno);
     
     return (struct ast *)fl;
 }
@@ -277,7 +296,7 @@ struct ast *make_intval(int val) {
     i->datatype = NODETYPE_INT;
     i->val = val;
     
-    debug_log("int with val %d at line %d\n", val, yylineno);
+    debug_log("int with val %d at line %d", val, yylineno);
     
     return (struct ast *)i;
 }
@@ -288,7 +307,7 @@ struct ast *make_charval(char val) {
     i->datatype = NODETYPE_CHAR;
     i->val = val;
     
-    debug_log("char with val %c(%d) at line %d\n", val, val, yylineno);
+    debug_log("char with val %c(%d) at line %d", val, val, yylineno);
     
     return (struct ast *)i;
 }
@@ -299,7 +318,7 @@ struct ast *make_floatval(float val) {
     i->datatype = NODETYPE_FLOAT;
     i->val = val;
     
-    debug_log("float with val %f at line %d\n", val, yylineno);
+    debug_log("float with val %f at line %d", val, yylineno);
     
     return (struct ast *)i;
 }
@@ -310,7 +329,7 @@ struct ast *make_stringval(char *val) {
     i->datatype = NODETYPE_STRING;
     i->val = val;
     
-    debug_log("string with val %s at line %d\n", val, yylineno);
+    debug_log("string with val %s at line %d", val, yylineno);
     
     return (struct ast *)i;
 }
@@ -333,6 +352,15 @@ struct typelist *make_typelist(int datatype, struct typelist *next) {
     return tl;
 }
 
+struct arglist *make_arglist(struct typelist *tl, struct symlist *sl) {
+    struct arglist *args = makesure_malloc(sizeof(struct arglist));
+    
+    args->tl = tl;
+    args->sl = sl;
+    
+    return args;
+}
+
 struct ast *make_glovardef(int datatype, struct symlist *vlist) {
     while(vlist) {
         if(!lookup_glosym(vlist->s->name)) {
@@ -350,17 +378,17 @@ struct ast *make_glovardef(int datatype, struct symlist *vlist) {
                     ((struct glovar *)(gs->prop))->val = make_floatval(0.0);
                     break;
                 case NODETYPE_STRING:
-                    yyerror("not support string type yet, at line %d\n", yylineno);
+                    yyerror("not support string type yet, at line %d", yylineno);
                     free_symlist(vlist);
                     return NULL;
                 default:
-                    yyerror("unknown data type at line %d\n", yylineno);
+                    yyerror("unknown data type at line %d", yylineno);
                     free_symlist(vlist);
                     return NULL;
             }
             
         } else {
-            yyerror("symbol %s definition duplicate at line %d\n", vlist->s->name, yylineno);
+            yyerror("symbol %s definition duplicate at line %d", vlist->s->name, yylineno);
         }
         vlist = vlist->next;
     }
@@ -370,7 +398,7 @@ struct ast *make_glovardef(int datatype, struct symlist *vlist) {
     vd->datatype = datatype;
     vd->vlist = vlist;
     
-    debug_log("global var definition with type %s at line %d\n",
+    debug_log("global var definition with type %s at line %d",
         datatype == NODETYPE_INT ? "int" : datatype == NODETYPE_CHAR ? "char" :
         datatype == NODETYPE_FLOAT ? "float" : datatype == NODETYPE_STRING ? "string" : "unknown",
         yylineno);
@@ -393,17 +421,17 @@ struct ast *make_locvardef(struct locsym tab[], int datatype, struct symlist *vl
                     ls->val = make_floatval(0.0);
                     break;
                 case NODETYPE_STRING:
-                    yyerror("not support string type yet, at line %d\n", yylineno);
+                    yyerror("not support string type yet, at line %d", yylineno);
                     free_symlist(vlist);
                     return NULL;
                 default:
-                    yyerror("unknown data type at line %d\n", yylineno);
+                    yyerror("unknown data type at line %d", yylineno);
                     free_symlist(vlist);
                     return NULL;
             }
             
         } else {
-            yyerror("symbol %s definition duplicate at line %d\n", vlist->s->name, yylineno);
+            yyerror("symbol %s definition duplicate at line %d", vlist->s->name, yylineno);
         }
         vlist = vlist->next;
     }
@@ -413,19 +441,27 @@ struct ast *make_locvardef(struct locsym tab[], int datatype, struct symlist *vl
     vd->datatype = datatype;
     vd->vlist = vlist;
     
-    debug_log("local var definition with type %s at line %d\n", DATATYPE_NAME(datatype), yylineno);
+    debug_log("local var definition with type %s at line %d", DATATYPE_NAME(datatype), yylineno);
     
     return (struct ast *)vd;
 }
 
-struct ast *make_funcdeclr(int retntype, struct sym *f, struct arglist *args, bool impl) {
-    if(!lookup_glosym(f->name)) {
-        struct glosym *gs = register_glosym(f->name);
+struct funcdef *make_funcinfo(int retntype, struct sym *f, struct arglist *args) {
+    struct funcdef *finfo = makesure_malloc(sizeof(struct funcdef));
+    finfo->retntype = retntype;
+    finfo->f = f;
+    finfo->args = args;
+    return finfo;
+}
+
+struct ast *make_funcdeclr(struct funcdef *finfo, char impl) {
+    if(!lookup_glosym(finfo->f->name)) {
+        struct glosym *gs = register_glosym(finfo->f->name);
         gs->nodetype = NODETYPE_FUNCDECLR;
         gs->prop = makesure_malloc(sizeof(struct func));
         
         int nargs = 0;
-        struct typelist *tl = args->tl;
+        struct typelist *tl = finfo->args->tl;
         while(tl) {
             ++nargs;
             tl = tl->next;
@@ -433,44 +469,41 @@ struct ast *make_funcdeclr(int retntype, struct sym *f, struct arglist *args, bo
         
         struct func *fprop = (struct func *)(gs->prop);
         
-        fprop->retntype = retntype;
+        fprop->retntype = finfo->retntype;
         fprop->nargs = nargs;
-        fprop->args = args;
+        fprop->args = finfo->args;
         
         if(!impl) {
             #ifdef DEBUG
             
-            tl = args->tl;
-            struct symlist *sl = args->sl;
-            debug_log("function %s %s ( ", DATATYPE_NAME(retntype), f->name);
+            tl = finfo->args->tl;
+            struct symlist *sl = finfo->args->sl;
+            printf("function %s %s (", DATATYPE_NAME(finfo->retntype), finfo->f->name);
             if(nargs == 0) {
-                debug_log("void");
+                printf("void");
             } else {
-                debug_log("%s %s", DATATYPE_NAME(tl->datatype), sl->s->name);
+                printf("%s %s", DATATYPE_NAME(tl->datatype), sl->s->name);
             }
             for(int i = 1; i < nargs; ++i) {
                 tl = tl->next;
                 sl = sl->next;
-                debug_log(", %s %s", DATATYPE_NAME(tl->datatype), sl->s->name);
+                printf(", %s %s", DATATYPE_NAME(tl->datatype), sl->s->name);
             }
-            debug_log("); with %d args declared at line %d\n", nargs, yylineno);
+            printf(") with %d args declared at line %d\n", nargs, yylineno);
             
             #endif
             
-            struct funcdef *fd = makesure_malloc(sizeof(struct funcdef));
-            fd->nodetype = NODETYPE_FUNCDECLRAST;
-            fd->retntype = retntype;
-            fd->f = f;
-            fd->args = args;
+            finfo->nodetype = NODETYPE_FUNCDECLRAST;
             
-            return (struct ast *)fd;
+            return (struct ast *)finfo;
         } else {
             return NULL;
         }
         
-    } else if( {
-        yyerror("symbol %s definition duplicate at line %d\n", f->name, yylineno);
-        free_arglist(args);
+    } else {
+        yyerror("symbol %s definition duplicate at line %d", finfo->f->name, yylineno);
+        free_arglist(finfo->args);
+        free(finfo);
         return NULL;
     }
 }
@@ -493,29 +526,29 @@ static void bind_formalparams(struct func *fprop) {
                     ls->val = make_floatval(0.0);
                     break;
                 case NODETYPE_STRING:
-                    yyerror("not support string type yet, at line %d\n", yylineno);
+                    yyerror("not support string type yet, at line %d", yylineno);
                     break;
                 default:
-                    yyerror("unknown data type at line %d\n", yylineno);
+                    yyerror("unknown data type at line %d", yylineno);
                     break;
             }
             
         } else {
-            yyerror("symbol %s definition duplicate at line %d\n", vlist->s->name, yylineno);
+            yyerror("symbol %s definition duplicate at line %d", sl->s->name, yylineno);
         }
         tl = tl->next;
         sl = sl->next;
     }
     
-    debug_log("binding formal parameters at line %d\n", yylineno);
+    debug_log("binding formal parameters at line %d", yylineno);
 }
 
-struct glosym *make_funcimplheader(int retntype, struct sym *f, struct arglist *args) {
-    struct glosym *gs = lookup_glosym(f->name);
+struct funcdef *make_funcimplheader(struct funcdef *finfo) {
+    struct glosym *gs = lookup_glosym(finfo->f->name);
     struct func *fprop;
     if(!gs) {
-        make_funcdeclr(retntype, f, args, true);
-        gs = lookup_glosym(f->name);
+        make_funcdeclr(finfo, 1);
+        gs = lookup_glosym(finfo->f->name);
         fprop = (struct func *)(gs->prop);
         
         // drop out
@@ -525,34 +558,38 @@ struct glosym *make_funcimplheader(int retntype, struct sym *f, struct arglist *
         
         // check if props are same
         int nargs = 0;
-        struct typelist *tl = args->tl;
+        struct typelist *tl = finfo->args->tl;
         struct typelist *otl = fprop->args->tl;
         while(tl) {
             ++nargs;
             if(!otl || tl->datatype != otl->datatype) {
-                yyerror("function %s implementation incompatible at line %d\n", f->name, yylineno);
-                free_arglist(args);
-                return gs;
+                yyerror("function %s implementation incompatible at line %d", finfo->f->name, yylineno);
+                free_arglist(finfo->args);
+                free(finfo);
+                return finfo;
             }
             tl = tl->next;
             otl = otl->next;
         }
-        if(retntype != fprop->retntype || nargs != fprop->nargs) {
-            yyerror("function %s implementation incompatible at line %d\n", f->name, yylineno);
-            free_arglist(args);
-            return gs;
+        if(finfo->retntype != fprop->retntype || nargs != fprop->nargs) {
+            yyerror("function %s implementation incompatible at line %d", finfo->f->name, yylineno);
+            free_arglist(finfo->args);
+            free(finfo);
+            return finfo;
         }
         
-        fprop->args = args;
+        // The funcdeclr-making funcdef-astnode still holds the old arglist's handle so don't free it
+        fprop->args = finfo->args;
         
         // drop out
         
     } else {
         yyerror(gs->nodetype == NODETYPE_FUNCIMPL ?
-            "function %s implementation duplicate at line %d\n" :
-            "symbol %s definition duplicate at line %d\n", f->name, yylineno);
-        free_arglist(args);
-        return gs;
+            "function %s implementation duplicate at line %d" :
+            "symbol %s definition duplicate at line %d", finfo->f->name, yylineno);
+        free_arglist(finfo->args);
+        free(finfo);
+        return finfo;
     }
     
     fprop->loctab = makesure_malloc(sizeof(struct locsym) * LOCSYMTABSIZE);
@@ -564,29 +601,31 @@ struct glosym *make_funcimplheader(int retntype, struct sym *f, struct arglist *
     
     #ifdef DEBUG
     
-    tl = args->tl;
-    struct symlist *sl = args->sl;
-    debug_log("function %s %s ( ", DATATYPE_NAME(retntype), f->name);
-    if(nargs == 0) {
-        debug_log("void");
+    struct typelist *tl = finfo->args->tl;
+    struct symlist *sl = finfo->args->sl;
+    printf("function %s %s (", DATATYPE_NAME(finfo->retntype), finfo->f->name);
+    if(tl == NULL || sl == NULL) {
+        printf("void");
     } else {
-        debug_log("%s %s", DATATYPE_NAME(tl->datatype), sl->s->name);
+        printf("%s %s", DATATYPE_NAME(tl->datatype), sl->s->name);
     }
-    for(int i = 1; i < nargs; ++i) {
+    while(tl->next != NULL && sl->next != NULL) {
         tl = tl->next;
         sl = sl->next;
-        debug_log(", %s %s", DATATYPE_NAME(tl->datatype), sl->s->name);
+        printf(", %s %s", DATATYPE_NAME(tl->datatype), sl->s->name);
     }
-    debug_log("); with %d args implementation begin at line %d\n", nargs, yylineno);
+    printf(") with %d args implementation begin at line %d\n", fprop->nargs, yylineno);
     
     #endif
     
-    return gs;
+    finfo->nodetype = NODETYPE_FUNCIMPLAST;
+    
+    return finfo;
 }
 
-struct ast *make_funcimpl(struct glosym *gs, struct ast *body) {
+struct ast *make_funcimpl(struct funcdef *finfo, struct ast *body) {
+    struct glosym *gs = lookup_glosym(finfo->f->name);
     struct func *fprop = (struct func *)(gs->prop);
-    struct sym *s = store_sym(gs->name);
     
     fprop->body = body;
     
@@ -598,51 +637,45 @@ struct ast *make_funcimpl(struct glosym *gs, struct ast *body) {
     int nargs = fprop->nargs;
     struct typelist *tl = fprop->args->tl;
     struct symlist *sl = fprop->args->sl;
-    debug_log("function %s %s ( ", DATATYPE_NAME(fprop->retntype), s->name);
+    printf("function %s %s (", DATATYPE_NAME(fprop->retntype), finfo->f->name);
     if(nargs == 0) {
-        debug_log("void");
+        printf("void");
     } else {
-        debug_log("%s %s", DATATYPE_NAME(tl->datatype), sl->s->name);
+        printf("%s %s", DATATYPE_NAME(tl->datatype), sl->s->name);
     }
     for(int i = 1; i < nargs; ++i) {
         tl = tl->next;
         sl = sl->next;
-        debug_log(", %s %s", DATATYPE_NAME(tl->datatype), sl->s->name);
+        printf(", %s %s", DATATYPE_NAME(tl->datatype), sl->s->name);
     }
-    debug_log("); with %d args implementation end at line %d\n", nargs, yylineno);
+    printf(") with %d args implementation end at line %d\n", nargs, yylineno);
     
     #endif
     
-    struct funcdef *fd = makesure_malloc(sizeof(struct funcdef));
-    fd->nodetype = NODETYPE_FUNCIMPLAST;
-    fd->retntype = fprop->retntype;
-    fd->f = s;
-    fd->args = fprop->args;
-    
-    return (struct ast *)fd;
+    return (struct ast *)finfo;
 }
 
-void *eval_ast(struct ast *) {
+void *eval_ast(struct ast *a) {
     
 }
 
-void free_ast(struct ast *) {
+void free_ast(struct ast *a) {
     
 }
 
-void free_symlist(struct symlist *) {
+void free_symlist(struct symlist *sl) {
     
 }
 
-void free_typelist(struct typelist *) {
+void free_typelist(struct typelist *tl) {
     
 }
 
-void free_arglist(struct arglist *) {
+void free_arglist(struct arglist *al) {
     
 }
 
-void free_locsymtab(struct locsym *) {
+void free_locsymtab(struct locsym *ls) {
     
 }
 

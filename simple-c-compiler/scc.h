@@ -14,6 +14,9 @@
 
 
 
+
+#define DEBUG
+
 /* data structures */
 
 struct ast {
@@ -140,27 +143,33 @@ struct funcdef {
 
 #define NODETYPE_SHL            '0'
 
-#define NODETYPE_LE             '1'
+#define NODETYPE_SHR            '1'
 
-#define NODETYPE_GE             '2'
+#define NODETYPE_LE             '2'
 
-#define NODETYPE_EQ             '3'
+#define NODETYPE_GE             '3'
 
-#define NODETYPE_NE             '4'
+#define NODETYPE_EQ             '4'
 
-#define NODETYPE_LAND           '5'
+#define NODETYPE_NE             '5'
 
-#define NODETYPE_LOR            '6'
+#define NODETYPE_LAND           '6'
 
-#define NODETYPE_POS            '7'
+#define NODETYPE_LOR            '7'
 
-#define NODETYPE_PREINC         '8'
+#define NODETYPE_NEGATIVE       '8'
 
-#define NODETYPE_PREDEC         '9'
+#define NODETYPE_POSITIVE       '9'
 
-#define NODETYPE_POSTINC        'a'
+#define NODETYPE_PREINC         1
 
-#define NODETYPE_SIZEOF         'b'
+#define NODETYPE_PREDEC         2
+
+#define NODETYPE_POSTINC        3
+
+#define NODETYPE_POSTDEC        4
+
+#define NODETYPE_SIZEOF         5
 
 #define NODETYPE_IF             'I'
 
@@ -186,13 +195,13 @@ struct funcdef {
 
 #define NODETYPE_SYMASGN        '='
 
-#define NODETYPE_GLOVARDEF      1
+#define NODETYPE_GLOVARDEF      6
 
-#define NODETYPE_LOCVARDEF      2
+#define NODETYPE_LOCVARDEF      7
 
-#define NODETYPE_FUNCDECLRAST   3
+#define NODETYPE_FUNCDECLRAST   8
 
-#define NODETYPE_FUNCIMPLAST    4
+#define NODETYPE_FUNCIMPLAST    9
 
 
 
@@ -219,7 +228,7 @@ struct glosym *lookup_glosym(char *name);
 
 //struct locsym locsymtab[LOCSYMTABSIZE]; // dynamic allocate
 
-struct locsym *register_glosym(struct locsym tab[], char *name);
+struct locsym *register_locsym(struct locsym tab[], char *name);
 
 struct locsym *lookup_locsym(struct locsym tab[], char *name);
 
@@ -230,7 +239,7 @@ struct locsym *lookup_locsym(struct locsym tab[], char *name);
 
 struct ast *make_ast(int nodetype, struct ast *l, struct ast *r);
 
-struct ast *make_funccall(struct glosym *s, struct ast *args);
+struct ast *make_funccall(struct sym *s, struct ast *args);
 
 struct ast *make_symref(struct locsym tab[], struct sym *s);
 
@@ -256,11 +265,13 @@ struct ast *make_glovardef(int datatype, struct symlist *vlist);
 
 struct ast *make_locvardef(struct locsym tab[], int datatype, struct symlist *vlist);
 
-struct ast *make_funcdeclr(int retntype, struct sym *f, struct arglist *args, bool impl);
+struct funcdef *make_funcinfo(int retntype, struct sym *f, struct arglist *args);
 
-struct func *make_funcimplheader(int retntype, struct sym *f, struct arglist *args);
+struct ast *make_funcdeclr(struct funcdef *finfo, char impl);
 
-struct ast *make_funcimpl(struct glosym *gs, struct ast *body);
+struct funcdef *make_funcimplheader(struct funcdef *finfo);
+
+struct ast *make_funcimpl(struct funcdef *finfo, struct ast *body);
 
 
 
@@ -283,17 +294,5 @@ void yyerror(char *s, ...);
 
 
 
-
-/* debug */
-
-#define DEBUG
-
-#ifdef DEBUG
-#define debug_log       printf
-#define DATATYPE_NAME(a) ((a) == NODETYPE_CHAR ? "char" : (a) == NODETYPE_INT ? "int" :\
-                          (a) == NODETYPE_FLOAT ? "float" : "unknown")
-#else
-#define debug_log(...);
-#endif
 
 #endif
