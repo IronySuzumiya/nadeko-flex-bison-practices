@@ -288,8 +288,6 @@ void free_typelist(struct typelist *);
 
 void free_arglist(struct arglist *);
 
-void free_locsymtab(struct locsym *);
-
 void yyerror(char *s, ...);
 
 

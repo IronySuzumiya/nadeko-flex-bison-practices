@@ -659,23 +659,114 @@ void *eval_ast(struct ast *a) {
 }
 
 void free_ast(struct ast *a) {
-    
+    if(!a) {
+        return;
+    }
+    switch(a->nodetype) {
+        case NODETYPE_STRING:
+            free(((struct stringval *)a)->val);
+            break;
+            
+        case NODETYPE_IF:
+            free_ast(((struct flow *)a)->ft);
+            
+        case NODETYPE_WHILE
+            free_ast(((struct flow *)a)->cond);
+            free_ast(((struct flow *)a)->tt);
+            break;
+            
+        case NODETYPE_SYMASGN:
+            free(((struct symasgn *)a)->sr);
+            free_ast(((struct symasgn *)a)->val);
+            
+        case NODETYPE_GLOREF:
+        case NODETYPE_LOCREF:
+            break;
+            
+        case NODETYPE_FUNCCALL:
+            free_ast(((struct funccall *)a)->args);
+            break;
+            
+        case NODETYPE_GLOVARDEF:
+        case NODETYPE_LOCVARDEF:
+            free_symlist(((struct vardef *)a)->vlist);
+            break;
+            
+        case NODETYPE_FUNCDECLRAST:
+        case NODETYPE_FUNCIMPLAST:
+            free_arglist(((struct funcdef *)a)->args);
+            break;
+            
+        case NODETYPE_LIST:
+        case '+':
+        case '-':
+        case '*':
+        case '/':
+        case '%':
+        case NODETYPE_SHL:
+        case NODETYPE_SHR:
+        case '<':
+        case '>':
+        case NODETYPE_LE:
+        case NODETYPE_GE:
+        case NODETYPE_EQ:
+        case NODETYPE_NE:
+        case '&':
+        case '^':
+        case '|':
+        case NODETYPE_LAND:
+        case NODETYPE_LOR:
+            free(a->r);
+            
+        case NODETYPE_NEGATIVE:
+        case NODETYPE_POSITIVE:
+        case '~':
+        case '!':
+        case NODETYPE_PREINC:
+        case NODETYPE_PREDEC:
+        case NODETYPE_POSTINC:
+        case NODETYPE_POSTDEC:
+        case NODETYPE_SIZEOF:
+        case NODETYPE_RETURN:
+            free(a->l);
+            
+        case NODETYPE_INT:
+        case NODETYPE_CHAR:
+        case NODETYPE_FLOAT:
+        case NODETYPE_CONTINUE:
+        case NODETYPE_BREAK:
+            break;
+            
+        default:
+            yyerror("internal error: unknown node-type at line %d", yylineno);
+    }
+    free(a);
 }
 
 void free_symlist(struct symlist *sl) {
-    
+    struct symlist *temp1 = sl;
+    struct symlist *temp2 = temp1;
+    while(temp2) {
+        temp2 = temp2->next;
+        free(temp1);
+        temp1 = temp2;
+    }
 }
 
 void free_typelist(struct typelist *tl) {
-    
+    struct typelist *temp1 = tl;
+    struct typelist *temp2 = temp1;
+    while(temp2) {
+        temp2 = temp2->next;
+        free(temp1);
+        temp1 = temp2;
+    }
 }
 
 void free_arglist(struct arglist *al) {
-    
-}
-
-void free_locsymtab(struct locsym *ls) {
-    
+    free_typelist(al->tl);
+    free_symlist(al->sl);
+    free(al);
 }
 
 void yyerror(char *s, ...) {
