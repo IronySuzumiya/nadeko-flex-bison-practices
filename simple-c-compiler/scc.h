@@ -278,7 +278,11 @@ struct ast *make_funcimpl(struct funcdef *finfo, struct ast *body);
 
 /* other functions */
 
-void *eval_ast(struct ast *);
+#define STACK_SIZE 512
+
+void eval(struct ast *);
+
+void traverse_ast(struct ast *);
 
 void free_ast(struct ast *);
 

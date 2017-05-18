@@ -654,7 +654,267 @@ struct ast *make_funcimpl(struct funcdef *finfo, struct ast *body) {
     return (struct ast *)finfo;
 }
 
-void *eval_ast(struct ast *a) {
+static inline char is_true(struct ast *a) {
+    switch(a->nodetype) {
+        case NODETYPE_INT:
+            return ((struct intval *)a)->val != 0;
+        case NODETYPE_CHAR:
+            return ((struct charval *)a)->val != 0;
+        case NODETYPE_FLOAT:
+            return ((struct floatval *)a)->val != 0;
+        case NODETYPE_STRING:
+            return ((struct stringval *)a)->val != NULL;
+        default:
+            yyerror("value cannot cast to bool type at line %d", yylineno);
+            return NULL;
+    }
+}
+
+static struct ast *eval_exp(struct ast *a) {
+    if(!a) {
+        return NULL;
+    }
+// TODO: eval exp
+    switch(a->nodetype) {
+        case NODETYPE_SYMASGN:
+        case NODETYPE_FUNCCALL:
+        case '+':
+        case '-':
+        case '*':
+        case '/':
+        case '%':
+        case NODETYPE_SHL:
+        case NODETYPE_SHR:
+        case '<':
+        case '>':
+        case NODETYPE_LE:
+        case NODETYPE_GE:
+        case NODETYPE_EQ:
+        case NODETYPE_NE:
+        case '&':
+        case '^':
+        case '|':
+        case NODETYPE_LAND:
+        case NODETYPE_LOR:
+        case NODETYPE_NEGATIVE:
+        case NODETYPE_POSITIVE:
+        case '~':
+        case '!':
+        case NODETYPE_PREINC:
+        case NODETYPE_PREDEC:
+        case NODETYPE_POSTINC:
+        case NODETYPE_POSTDEC:
+        case NODETYPE_SIZEOF:
+        case NODETYPE_INT:
+        case NODETYPE_CHAR:
+        case NODETYPE_FLOAT:
+            break;
+            
+        default:
+            break;
+    }
+}
+
+static struct ast *eval_func(struct ast *a) {
+    struct ast *stack[STACK_SIZE] = { NULL, };
+    struct ast **sp = stack;
+    
+    while(a || sp != stack) {
+        if(!a) {
+            a = *--sp;
+            if(a->nodetype = NODETYPE_LIST) {
+                a = a->r;
+                if(!a) {
+                    continue;
+                }
+            }
+        }
+        switch(a->nodetype) {
+            case NODETYPE_LIST:
+                *sp++ = a;
+                a = a->l;
+                break;
+            case NODETYPE_IF:
+                a = is_true(eval_exp(((struct flow *)a)->cond)) ? ((struct flow *)a)->tt : ((struct flow *)a)->ft;
+                break;
+            case NODETYPE_WHILE:
+                *sp++ = a;
+                if(is_true(eval_exp(((struct flow *)a)->cond))) {
+                    a = ((struct flow *)a)->tt;
+                } else {
+                    --sp;
+                    a = NULL;
+                }
+                break;
+            case NODETYPE_SYMASGN:
+                if(((struct symasgn *)a)->sr->nodetype == NODETYPE_LOCREF) {
+                    switch((struct locsym *(((struct symasgn *)a)->sr->s))->val->nodetype) {
+                        case NODETYPE_INT:
+                            (struct intval *((struct locsym *(((struct symasgn *)a)->sr->s))->val))->val = eval_exp(((struct symasgn *)a)->val);
+                            break;
+                        case NODETYPE_CHAR:
+                            (struct charval *((struct locsym *(((struct symasgn *)a)->sr->s))->val))->val = eval_exp(((struct symasgn *)a)->val);
+                            break;
+                        case NODETYPE_FLOAT:
+                            (struct floatval *((struct locsym *(((struct symasgn *)a)->sr->s))->val))->val = eval_exp(((struct symasgn *)a)->val);
+                            break;
+                        case NODETYPE_STRING:
+                            (struct stringval *((struct locsym *(((struct symasgn *)a)->sr->s))->val))->val = eval_exp(((struct symasgn *)a)->val);
+                            break;
+                        default:
+                            yyerror("local var with unknown type at line %d", yylineno);
+                    }
+                } else if(((struct symasgn *)a)->sr->nodetype == NODETYPE_GLOREF) {
+                    switch((struct glovar *((struct glosym *(((struct symasgn *)a)->sr->s))->prop))->val->nodetype) {
+                        case NODETYPE_INT:
+                            (struct intval *((struct glovar *((struct glosym *(((struct symasgn *)a)->sr->s))->prop))->val))->val
+                                = eval_exp(((struct symasgn *)a)->val);
+                            break;
+                        case NODETYPE_CHAR:
+                            (struct charval *((struct glovar *((struct glosym *(((struct symasgn *)a)->sr->s))->prop))->val))->val
+                                = eval_exp(((struct symasgn *)a)->val);
+                            break;
+                        case NODETYPE_FLOAT:
+                            (struct floatval *((struct glovar *((struct glosym *(((struct symasgn *)a)->sr->s))->prop))->val))->val
+                                = eval_exp(((struct symasgn *)a)->val);
+                            break;
+                        case NODETYPE_STRING:
+                            (struct stringval *((struct glovar *((struct glosym *(((struct symasgn *)a)->sr->s))->prop))->val))->val
+                                = eval_exp(((struct symasgn *)a)->val);
+                            break;
+                        default:
+                            yyerror("global var with unknown type at line %d", yylineno);
+                    }
+                } else {
+                    yyerror("internal error: reference to wrong var at line %d", yylineno);
+                }
+                a = NULL;
+                break;
+            case NODETYPE_FUNCCALL:
+                free_ast(call_func((struct funccall *)a));
+                a = NULL;
+                break;
+            case NODETYPE_PREINC:
+            case NODETYPE_POSTINC:
+                if(((struct symref *)(a->l))->nodetype == NODETYPE_LOCREF) {
+                    switch((struct locsym *(((struct symref *)(a->l))->s))->val->nodetype) {
+                        case NODETYPE_INT:
+                            ++((struct intval *((struct locsym *(((struct symref *)(a->l))->s))->val))->val);
+                            break;
+                        case NODETYPE_CHAR:
+                            ++((struct charval *((struct locsym *(((struct symref *)(a->l))->s))->val))->val);
+                            break;
+                        case NODETYPE_FLOAT:
+                            ++((struct floatval *((struct locsym *(((struct symref *)(a->l))->s))->val))->val);
+                            break;
+                        case NODETYPE_STRING:
+                            yyerror("string cannot do `INC` at line %d", yylineno);
+                            break;
+                        default:
+                            yyerror("local var with unknown type at line %d", yylineno);
+                    }
+                } else if(((struct symref *)(a->l))->nodetype == NODETYPE_GLOREF) {
+                    switch((struct glovar *((struct glosym *(((struct symref *)(a->l))->s))->prop))->val->nodetype) {
+                        case NODETYPE_INT:
+                            ++((struct intval *((struct glovar *((struct glosym *(((struct symref *)(a->l))->s))->prop))->val))->val);
+                            break;
+                        case NODETYPE_CHAR:
+                            ++((struct charval *((struct glovar *((struct glosym *(((struct symref *)(a->l))->s))->prop))->val))->val);
+                            break;
+                        case NODETYPE_FLOAT:
+                            ++((struct floatval *((struct glovar *((struct glosym *(((struct symref *)(a->l))->s))->prop))->val))->val);
+                            break;
+                        case NODETYPE_STRING:
+                            yyerror("string cannot do `INC` at line %d", yylineno);
+                            break;
+                        default:
+                            yyerror("global var with unknown type at line %d", yylineno);
+                    }
+                } else {
+                    yyerror("internal error: reference to wrong var at line %d", yylineno);
+                }
+                a = NULL;
+                break;
+            case NODETYPE_PREDEC:
+            case NODETYPE_POSTDEC:
+                if(((struct symref *)(a->l))->nodetype == NODETYPE_LOCREF) {
+                    switch((struct locsym *(((struct symref *)(a->l))->s))->val->nodetype) {
+                        case NODETYPE_INT:
+                            --((struct intval *((struct locsym *(((struct symref *)(a->l))->s))->val))->val);
+                            break;
+                        case NODETYPE_CHAR:
+                            --((struct charval *((struct locsym *(((struct symref *)(a->l))->s))->val))->val);
+                            break;
+                        case NODETYPE_FLOAT:
+                            --((struct floatval *((struct locsym *(((struct symref *)(a->l))->s))->val))->val);
+                            break;
+                        case NODETYPE_STRING:
+                            yyerror("string cannot do `DEC` at line %d", yylineno);
+                            break;
+                        default:
+                            yyerror("local var with unknown type at line %d", yylineno);
+                    }
+                } else if(((struct symref *)(a->l))->nodetype == NODETYPE_GLOREF) {
+                    switch((struct glovar *((struct glosym *(((struct symref *)(a->l))->s))->prop))->val->nodetype) {
+                        case NODETYPE_INT:
+                            --((struct intval *((struct glovar *((struct glosym *(((struct symref *)(a->l))->s))->prop))->val))->val);
+                            break;
+                        case NODETYPE_CHAR:
+                            --((struct charval *((struct glovar *((struct glosym *(((struct symref *)(a->l))->s))->prop))->val))->val);
+                            break;
+                        case NODETYPE_FLOAT:
+                            --((struct floatval *((struct glovar *((struct glosym *(((struct symref *)(a->l))->s))->prop))->val))->val);
+                            break;
+                        case NODETYPE_STRING:
+                            yyerror("string cannot do `DEC` at line %d", yylineno);
+                            break;
+                        default:
+                            yyerror("global var with unknown type at line %d", yylineno);
+                    }
+                } else {
+                    yyerror("internal error: reference to wrong var at line %d", yylineno);
+                }
+                a = NULL;
+                break;
+            case NODETYPE_RETURN:
+                return a->l;
+            default:
+                a = NULL;
+        }
+    }
+    return NULL;
+}
+
+static struct ast *call_func(struct funccall *fc) {
+    struct ast *stack[STACK_SIZE] = { NULL, };
+    struct ast **sp = stack;
+    
+// TODO: assign to params separately
+    while(a || sp != stack) {
+        if(a) {
+            
+        } else {
+            
+        }
+    }
+    return eval_func(((struct func *)fc->f->prop)->body);
+}
+
+void eval(struct ast *) {
+    struct glosym *_main = lookup_glosym("main");
+    if(!_main) {
+        yyerror("symbol `main` is not defined, exit");
+    } else if(_main->nodetype != NODETYPE_FUNCIMPL) {
+        yyerror("symbol `main` is not defined as a function, exit");
+    } else if(((struct func *)_main->prop)->retntype != NODETYPE_INT) {
+        yyerror("function `main` should return `int` value, exit");
+    } else {
+        struct funccall *call_main = { NODETYPE_FUNCCALL, _main, NULL };
+        printf("program exits with value (%d)\n", (struct intval *(call_func(call_main)))->val);
+    }
+}
+
+void traverse_ast(struct ast *) {
     
 }
 
@@ -738,7 +998,7 @@ void free_ast(struct ast *a) {
             break;
             
         default:
-            yyerror("internal error: unknown node-type at line %d", yylineno);
+            yyerror("internal error: unknown node-type %c(%d) at line %d", a->nodetype, a->nodetype, yylineno);
     }
     free(a);
 }
