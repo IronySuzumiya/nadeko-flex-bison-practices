@@ -1,7 +1,7 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
-#include "scc.h"
+#include "yascc.h"
 
 extern int yylineno;
 

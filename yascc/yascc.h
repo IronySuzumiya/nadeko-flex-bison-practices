@@ -1,13 +1,14 @@
-#ifndef __SCC_H
-#define __SCC_H
+#ifndef __YASCC_H
+#define __YASCC_H
 
 /* * * * * * * * * * * * * * * * * * * * * *
  *                                          *
- *      Yet Another Simple C Compiler       *
+ *    Yet Another Simple C-like Compiler    *
  *                          --YASCC         *
  *                                          *
  *          Author:  Sangoku Nadeko         *
- *          Contact: 81103137(QQ)           *
+ *          Email:   81103137@qq.com        *
+ *          Github:  IronySuzumiya          *
  *          Date:    2017-5-15              *
  *                                          *
   * * * * * * * * * * * * * * * * * * * * * */

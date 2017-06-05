@@ -2,14 +2,14 @@
 %{
 #include <stdlib.h>
 #include <string.h>
-#include "scc.tab.h"
-#include "scc.h"
+#include "yascc.tab.h"
+#include "yascc.h"
 %}
 
-hexnumber               0x[0-9a-fA-F]+
+hexnumber               0[xX][0-9a-fA-F]+
 octnumber               0[0-7]+
 dignumber               0|([1-9][0-9]*)
-floatnumber             {dignumber}?\.{dignumber}
+floatnumber             {dignumber}?\.{dignumber}([eE]{dignumber}?\.{dignumber})?
 
 charac                  \'\\?.\'
 
